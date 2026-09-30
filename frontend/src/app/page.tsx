@@ -8,7 +8,7 @@ import {
   TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, 
   Zap, Play, RefreshCw, Bot, ExternalLink, ShieldAlert,
   ChevronRight, ArrowUpRight, DollarSign, Layers, Check, Copy, Globe, Newspaper,
-  Menu, X
+  Menu, X, ChevronDown
 } from "lucide-react";
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, 
@@ -30,12 +30,27 @@ import { SignalFusionCard } from "@/components/news/SignalFusionCard";
 import { NewsDetailModal } from "@/components/news/NewsDetailModal";
 import { TradeGuardLogo, TradeGuardIcon } from "@/components/TradeGuardLogo";
 
+// Predefined verified institutional asset coverage
+const POPULAR_ASSETS = [
+  { symbol: "AAPL", name: "Apple Inc.", exchange: "NASDAQ", sector: "Technology" },
+  { symbol: "NVDA", name: "NVIDIA Corp.", exchange: "NASDAQ", sector: "Semiconductors" },
+  { symbol: "TSLA", name: "Tesla Inc.", exchange: "NASDAQ", sector: "Automotive" },
+  { symbol: "MSFT", name: "Microsoft Corp.", exchange: "NASDAQ", sector: "Technology" },
+  { symbol: "GOOGL", name: "Alphabet Inc.", exchange: "NASDAQ", sector: "Communication" },
+  { symbol: "AMZN", name: "Amazon.com", exchange: "NASDAQ", sector: "Consumer Cyclical" },
+  { symbol: "BTC-USD", name: "Bitcoin USD", exchange: "Crypto", sector: "Cryptocurrency" },
+  { symbol: "ETH-USD", name: "Ethereum USD", exchange: "Crypto", sector: "Cryptocurrency" },
+  { symbol: "RELIANCE.NS", name: "Reliance Industries", exchange: "NSE", sector: "Energy" },
+  { symbol: "TCS.NS", name: "Tata Consultancy Services", exchange: "NSE", sector: "Technology" },
+];
+
 export default function TradeGuardApp() {
   // Navigation active tab
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [searchSymbol, setSearchSymbol] = useState("AAPL");
   const [currentSymbol, setCurrentSymbol] = useState("AAPL");
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
   // Dedicated chart search state
   const [chartInput, setChartInput] = useState("");
   const [chartSymbol, setChartSymbol] = useState("NASDAQ:AAPL");
@@ -206,11 +221,18 @@ export default function TradeGuardApp() {
     }
   };
 
+  const selectAsset = (sym: string) => {
+    const cleanSym = sym.toUpperCase().trim();
+    setSearchSymbol(cleanSym);
+    loadAssetAnalysis(cleanSym);
+    setIsSearchDropdownOpen(false);
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSearchDropdownOpen(false);
     if (searchSymbol.trim()) {
-      const sym = searchSymbol.toUpperCase().trim();
-      loadAssetAnalysis(sym);
+      selectAsset(searchSymbol);
     }
   };
 
@@ -415,19 +437,76 @@ export default function TradeGuardApp() {
             </button>
 
 
-            {/* Symbol Search Bar */}
-            <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 w-full max-w-[200px] sm:max-w-xs md:max-w-sm">
-              <div className="relative w-full">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search (AAPL, NVDA)..."
-                  value={searchSymbol}
-                  onChange={(e) => setSearchSymbol(e.target.value)}
-                  className="w-full pl-9 pr-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-cyan-400 uppercase font-mono placeholder:normal-case placeholder:font-sans"
-                />
-              </div>
-            </form>
+            {/* Symbol Search Bar with Instant Suggestions */}
+            <div className="relative w-full max-w-[210px] sm:max-w-xs md:max-w-sm">
+              <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 w-full">
+                <div className="relative w-full">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Search stock / crypto (AAPL, NVDA)..."
+                    value={searchSymbol}
+                    onFocus={() => setIsSearchDropdownOpen(true)}
+                    onChange={(e) => {
+                      setSearchSymbol(e.target.value);
+                      setIsSearchDropdownOpen(true);
+                    }}
+                    className="w-full pl-9 pr-7 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-cyan-400 uppercase font-mono placeholder:normal-case placeholder:font-sans"
+                  />
+                  {searchSymbol && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchSymbol("");
+                        setIsSearchDropdownOpen(true);
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs px-1"
+                      title="Clear search"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </form>
+
+              {/* Autocomplete / Quick-Pick Dropdown */}
+              {isSearchDropdownOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-30"
+                    onClick={() => setIsSearchDropdownOpen(false)}
+                  />
+                  <div className="absolute left-0 right-0 top-full mt-1.5 bg-[#0b1329] border border-cyan-500/30 rounded-xl shadow-2xl z-40 max-h-72 overflow-y-auto divide-y divide-slate-800/80 backdrop-blur-md">
+                    <div className="p-2 text-[10px] font-bold uppercase tracking-wider text-cyan-400 flex items-center justify-between bg-slate-900/60">
+                      <span>Click Any Asset to Analyze</span>
+                      <span className="text-slate-500 font-mono text-[9px]">10 Available</span>
+                    </div>
+                    {POPULAR_ASSETS.filter(a => 
+                      !searchSymbol || 
+                      a.symbol.toLowerCase().includes(searchSymbol.toLowerCase()) || 
+                      a.name.toLowerCase().includes(searchSymbol.toLowerCase())
+                    ).map((asset) => (
+                      <button
+                        key={asset.symbol}
+                        type="button"
+                        onClick={() => selectAsset(asset.symbol)}
+                        className={`w-full px-3 py-2 text-left flex items-center justify-between hover:bg-cyan-500/10 transition-colors ${
+                          currentSymbol === asset.symbol ? "bg-cyan-500/20 text-cyan-300 font-bold" : "text-slate-200"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-cyan-400">{asset.symbol}</span>
+                          <span className="text-xs text-slate-300 truncate max-w-[130px]">{asset.name}</span>
+                        </div>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
+                          {asset.exchange}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Quick Metrics & Action Controls */}
@@ -858,37 +937,82 @@ export default function TradeGuardApp() {
           ======================================================== */}
           {activeTab === "analyzer" && (
             <div className="space-y-5">
-              {/* Asset Header */}
-              <div className="glass-panel p-5 rounded-xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-cyan-400 uppercase">AI Asset Inspection</span>
-                    <span className="text-xs text-slate-500">•</span>
-                    <span className="text-xs text-slate-400">NASDAQ Exchange</span>
+              {/* Asset Header with Interactive Asset Switcher */}
+              <div className="glass-panel p-5 rounded-xl border border-slate-800 space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">AI Asset Inspection</span>
+                      <span className="text-xs text-slate-500">•</span>
+                      <span className="text-xs text-slate-400 font-mono">
+                        {POPULAR_ASSETS.find(a => a.symbol === currentSymbol)?.exchange || "Global"} Exchange
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                      <h1 className="text-2xl font-black text-slate-100 flex items-center gap-2">
+                        {currentSymbol}
+                        <span className="font-mono text-cyan-300">
+                          {analysisData?.metrics?.close ? `$${analysisData.metrics.close.toFixed(2)}` : ""}
+                        </span>
+                      </h1>
+
+                      {/* Instant Stock Dropdown Selector */}
+                      <select
+                        value={currentSymbol}
+                        onChange={(e) => selectAsset(e.target.value)}
+                        className="bg-slate-900 border border-cyan-500/40 text-cyan-300 text-xs font-bold py-1 px-2.5 rounded-lg focus:outline-none focus:ring-1 focus:ring-cyan-400 cursor-pointer shadow-sm"
+                      >
+                        {POPULAR_ASSETS.map((a) => (
+                          <option key={a.symbol} value={a.symbol} className="bg-slate-900 text-slate-100">
+                            {a.symbol} — {a.name} ({a.exchange})
+                          </option>
+                        ))}
+                      </select>
+
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                        Regime: {analysisData?.metrics?.market_regime || "Bullish Trend"}
+                      </span>
+                    </div>
                   </div>
-                  <h1 className="text-2xl font-black text-slate-100 flex items-center gap-3 mt-1">
-                    {currentSymbol}
-                    <span className="font-mono text-cyan-300">${analysisData?.metrics?.close?.toFixed(2)}</span>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                      Regime: {analysisData?.metrics?.market_regime || "Bullish Trend"}
-                    </span>
-                  </h1>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setActiveTab("chart")}
+                      className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5"
+                    >
+                      <LineChart className="w-4 h-4 text-cyan-400" />
+                      Open TradingView
+                    </button>
+                    <button
+                      onClick={() => handleOpenTradeModal(currentSymbol, analysisData?.signal?.signal_type || "BUY", analysisData?.metrics?.close || 224.23)}
+                      className="px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-cyan-500/20"
+                    >
+                      <Zap className="w-4 h-4" /> Place Paper Order
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setActiveTab("chart")}
-                    className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5"
-                  >
-                    <LineChart className="w-4 h-4 text-cyan-400" />
-                    Open TradingView
-                  </button>
-                  <button
-                    onClick={() => handleOpenTradeModal(currentSymbol, analysisData?.signal?.signal_type || "BUY", analysisData?.metrics?.close || 224.23)}
-                    className="px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-cyan-500/20"
-                  >
-                    <Zap className="w-4 h-4" /> Place Paper Order
-                  </button>
+                {/* Quick Asset Switch Pills */}
+                <div className="pt-3 border-t border-slate-800/80 flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1.5">
+                    Switch Asset:
+                  </span>
+                  {POPULAR_ASSETS.map((asset) => {
+                    const isSelected = currentSymbol === asset.symbol;
+                    return (
+                      <button
+                        key={asset.symbol}
+                        onClick={() => selectAsset(asset.symbol)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                          isSelected
+                            ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25 border border-cyan-400"
+                            : "bg-slate-900/90 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-700/60"
+                        }`}
+                      >
+                        <span>{asset.symbol}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
