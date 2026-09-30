@@ -52,6 +52,78 @@ TradeGuard AI's core unique differentiator:
 
 ---
 
+## 📖 Complete Step-by-Step User Guide
+
+> For the in-depth manual covering all 16 views, mathematical formulas, and advanced workflows, see **[USER_GUIDE.md](./USER_GUIDE.md)**.
+
+### Quick Start (How to Run Everything)
+
+1. **Start the Backend API Server**:
+   ```bash
+   npm run backend
+   ```
+   *Runs the FastAPI server on `http://127.0.0.1:8000` and initializes the database.*
+   *Interactive API Swagger documentation is available at `http://127.0.0.1:8000/docs`.*
+
+2. **Start the Frontend Web Terminal**:
+   ```bash
+   npm run dev
+   ```
+   *Launches the Next.js trading terminal on `http://localhost:3000`.*
+
+3. **Open the Terminal**:
+   Navigate to **`http://localhost:3000`** in your browser.
+
+---
+
+### Step-by-Step: How to Use the Website
+
+1. **Auto-Moving Ticker Tape**: View live streaming prices and percentage changes for global assets at the top of the terminal.
+2. **Search Assets**: Type any ticker (e.g., `AAPL`, `NVDA`, `TSLA`, `BTC-USD`, `RELIANCE.NS`) in the top search bar and hit Enter to immediately load technical indicators, chart data, and AI signals.
+3. **Inspect AI Signals & XAI**: Check the **AI Market Intelligence Banner** for directional probabilities (*Bullish / Neutral / Bearish*), walk-forward confidence %, dynamic ATR brackets, and explainable AI (*Why This Signal?*) factor breakdowns.
+4. **Place a Paper Trade**:
+   - Click **"New Paper Trade"** to open the order modal.
+   - Enter your quantity and verify your Stop-Loss and Take-Profit brackets.
+   - The **Pre-Trade Risk Engine** automatically verifies that your trade risk does not exceed 1% of account capital (₹10,000 on the ₹10,00,000 virtual balance).
+   - Click **"Submit Order"** to execute simulated paper trade.
+5. **Manage Portfolio**:
+   - Switch to the **Portfolio** tab to track live unrealized/realized P&L and asset allocation.
+   - Click **"Close Position"** on any open asset to immediately lock in profits/losses.
+6. **Run Quantitative Backtests**:
+   - In the **Backtesting** tab, select any asset, date range, and fee settings.
+   - Click **"Run Backtest Simulation"** to view equity curves, Sharpe ratio, win rate, and max drawdown.
+7. **Verify on Stellar Blockchain**:
+   - Navigate to the **Blockchain Audit** tab.
+   - Click **"Verify Proof"** on any signal to inspect its cryptographic SHA-256 hash and on-chain Stellar Soroban smart contract receipt.
+8. **Consult the AI Copilot**:
+   - Click the floating **AI Copilot** button at the bottom-right corner.
+   - Ask natural language questions like *"Why is AAPL bullish?"*, *"Check my portfolio risk"*, or *"Why was my order rejected?"*.
+
+---
+
+### Step-by-Step: How to Use the TradingView Bot & Webhooks
+
+1. Open [`pinescript/TradeGuard_AI_Strategy.pine`](./pinescript/TradeGuard_AI_Strategy.pine).
+2. In TradingView, open the **Pine Editor** at the bottom, paste the code, and click **"Add to chart"**.
+3. Create a TradingView Alert:
+   - Condition: `TradeGuard AI Strategy`
+   - Check **Webhook URL**: Enter `https://your-domain/api/webhooks/tradingview`
+   - Paste the JSON message payload:
+     ```json
+     {
+       "symbol": "{{ticker}}",
+       "price": {{close}},
+       "volume": {{volume}},
+       "time": "{{time}}",
+       "signal": "{{strategy.order.action}}",
+       "source": "tradingview",
+       "secret": "tradeguard-secure-token"
+     }
+     ```
+4. TradingView will automatically send webhook signals to TradeGuard AI, triggering risk verification and logging directly into your Alerts Center and blockchain audit ledger.
+
+---
+
 ## Key Features
 
 1. **Dashboard**: High-level terminal overview showing virtual portfolio value, today's P&L, risk exposure, open positions, top bullish/bearish assets, and recent blockchain verification events.
