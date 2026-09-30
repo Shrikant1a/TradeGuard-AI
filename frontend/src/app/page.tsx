@@ -29,6 +29,7 @@ import { NewsDashboard } from "@/components/news/NewsDashboard";
 import { SignalFusionCard } from "@/components/news/SignalFusionCard";
 import { NewsDetailModal } from "@/components/news/NewsDetailModal";
 import { TradeGuardLogo, TradeGuardIcon } from "@/components/TradeGuardLogo";
+import { SplashIntroScreen } from "@/components/SplashIntroScreen";
 
 // Predefined verified institutional asset coverage
 const POPULAR_ASSETS = [
@@ -51,6 +52,7 @@ export default function TradeGuardApp() {
   const [searchSymbol, setSearchSymbol] = useState("AAPL");
   const [currentSymbol, setCurrentSymbol] = useState("AAPL");
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
   // Dedicated chart search state
   const [chartInput, setChartInput] = useState("");
   const [chartSymbol, setChartSymbol] = useState("NASDAQ:AAPL");
@@ -338,6 +340,9 @@ export default function TradeGuardApp() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#080c14] text-slate-100 font-sans">
+      {/* ── Cinematic Animated Intro Splash Screen ── */}
+      {showSplash && <SplashIntroScreen onComplete={() => setShowSplash(false)} />}
+
       {/* ── Mobile Backdrop Overlay ── */}
       {isMobileNavOpen && (
         <div
