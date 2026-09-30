@@ -145,27 +145,133 @@ TradeGuard AI's core unique differentiator:
 
 ---
 
-## Technology Stack
+## 🛠️ Architecture Guide: Where and What Can We Use?
 
-### Frontend
-- **Framework**: Next.js 16 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS (Dark Trading Terminal Theme with Glassmorphism)
-- **Icons**: Lucide React
-- **Charts**: Recharts & TradingView Advanced Chart Widget
-- **API Client**: Modular typed Fetch service
+This reference explains **where every part of the system lives**, **what technology is used**, and **how you can use and configure it**.
 
-### Backend
-- **Framework**: Python 3.11 + FastAPI (Async REST API)
-- **Validation**: Pydantic v2
-- **Data & ML**: Pandas, NumPy, Scikit-learn (Logistic Regression, Random Forest, Gradient Boosting)
-- **Database**: PostgreSQL (with automatic SQLite fallback via SQLAlchemy 2.0 Async + aiosqlite)
-- **Caching**: In-Memory + Redis-ready architecture
+### 📊 Quick Component Matrix
 
-### Blockchain Layer
-- **Network**: Stellar Soroban (Smart Contracts)
-- **Contract Language**: Rust (`contracts/trade_guard_audit`)
-- **Verification**: SHA-256 cryptographic hashes of signals, strategies, and execution receipts.
+| Layer | Directory / File | Tech Stack | Port / URL | How to Run / Use |
+|---|---|---|---|---|
+| **Frontend** | [`frontend/`](./frontend) | Next.js 16, TypeScript, Tailwind CSS, Recharts | `http://localhost:3000` | `npm run dev` |
+| **Backend** | [`backend/`](./backend) | Python 3.11, FastAPI, Pydantic v2, Scikit-learn | `http://127.0.0.1:8000` | `npm run backend` |
+| **Database (Default)** | [`tradeguard.db`](./tradeguard.db) | SQLite via `SQLAlchemy 2.0 Async` + `aiosqlite` | File on disk | Automatic (zero setup needed) |
+| **Database (Production)** | `DATABASE_URL` | PostgreSQL via `asyncpg` | Port `5432` | Set `DATABASE_URL` in `.env` |
+| **Speed Cache** | `REDIS_URL` | Redis / In-Memory Fallback | Port `6379` | Optional (falls back to memory) |
+| **REST API & Swagger** | [`backend/app/api/`](./backend/app/api) | FastAPI Async Router | `http://127.0.0.1:8000/docs` | Interactive Swagger UI in browser |
+| **Blockchain** | [`contracts/trade_guard_audit/`](./contracts/trade_guard_audit) | Stellar Soroban Smart Contract (Rust) | Stellar Testnet RPC | `cargo check` / On-chain hashing |
+| **Trading Bot** | [`pinescript/`](./pinescript) | Pine Script v5 Strategy | TradingView SuperCharts | Add to TradingView + Webhook |
+
+---
+
+### 1. 🖥️ Frontend (Web Terminal)
+- **Directory**: [`frontend/`](./frontend)
+- **What it uses**:
+  - **Framework**: Next.js 16 (App Router with Turbopack)
+  - **Language**: TypeScript
+  - **Styling**: Tailwind CSS v4 with custom dark trading terminal theme, cyberpunk glassmorphism, and neon glow accents
+  - **Typography**: Google Fonts **Orbitron** (`font-logo`), **Rajdhani**, and **Space Grotesk**
+  - **Charts**: Recharts (price trends, portfolio allocation) & TradingView advanced charting widget
+  - **Icons**: Lucide React
+  - **Animation**: Continuous floating shield emblem, radar beacon waves, metallic shimmer sweep, and cinematic intro splash screen
+- **How to use**:
+  ```bash
+  # From project root:
+  npm run dev
+  # Then open http://localhost:3000
+  ```
+- **What you can use here**:
+  - Live auto-moving ticker tape for real-time market quotes
+  - Search or switch between 10+ global stocks & cryptos (`AAPL`, `NVDA`, `TSLA`, `BTC-USD`, `ETH-USD`, `RELIANCE.NS`, etc.)
+  - Interactive **"How to Use"** guide with 8 chapters and FAQ
+  - Simulated **Paper Trading** with virtual ₹10,00,000 capital
+  - Historical backtesting simulations and on-chain blockchain proof inspection
+
+---
+
+### 2. ⚙️ Backend (AI Engine & Risk Gatekeeper)
+- **Directory**: [`backend/`](./backend)
+- **What it uses**:
+  - **Framework**: Python 3.11 + FastAPI (Asynchronous REST API)
+  - **Machine Learning**: Scikit-learn (Walk-forward Logistic Regression, Random Forest, and Gradient Boosting ensembles)
+  - **Data Processing**: Pandas, NumPy, yfinance (live market candles)
+  - **Pre-Trade Risk Engine**: Mandatory Stop-Loss validator, 1% capital risk gatekeeper, 40% exposure cap, and Emergency Circuit Breaker
+  - **Explainable AI (XAI)**: Feature attribution scores explaining why signals are generated
+  - **News Intelligence**: Alpha Vantage, GNews, Google News RSS, and NLP sentiment scoring
+- **How to use**:
+  ```bash
+  # From project root:
+  npm run backend
+  # Server starts on http://127.0.0.1:8000
+  ```
+
+---
+
+### 3. 🗄️ Database Architecture
+- **Configuration File**: [`backend/app/config.py`](./backend/app/config.py)
+- **Database Engine**: [`backend/app/db/database.py`](./backend/app/db/database.py)
+- **Data Models**: [`backend/app/db/models.py`](./backend/app/db/models.py)
+- **What databases you can use**:
+  1. **SQLite (`aiosqlite`) — Default for Local Development**:
+     - Connection: `sqlite+aiosqlite:///./tradeguard.db`
+     - Created automatically on startup as [`tradeguard.db`](./tradeguard.db) in the project root.
+     - Zero configuration required.
+  2. **PostgreSQL (`asyncpg`) — Recommended for Production**:
+     - Connection: `postgresql+asyncpg://user:password@localhost:5432/tradeguard_db`
+     - Simply set the `DATABASE_URL` environment variable in `.env`.
+     - Supports high-concurrency connection pooling.
+  3. **Redis — Speed Cache**:
+     - Connection: `REDIS_URL=redis://localhost:6379/0`
+     - Used for caching news sentiment and streaming quotes. If Redis is not available, automatically falls back to in-memory caching.
+- **What tables are stored**:
+  - `users`: User profiles, credentials, risk parameters.
+  - `assets`: Tradable assets, exchanges, sectors.
+  - `market_data`: Historical and cached OHLCV candle records.
+  - `signals`: Generated AI signals, directional probabilities, and ATR brackets.
+  - `portfolios` & `positions`: Virtual cash balances, holdings, and P&L.
+  - `paper_trades`: Virtual order execution logs and fills.
+  - `risk_policies`: Configured risk rules (max risk %, max exposure %, circuit breaker).
+  - `alerts` & `webhook_logs`: TradingView alert webhooks and risk trigger logs.
+
+---
+
+### 4. 🌐 REST API & Webhooks
+- **Interactive Documentation**: Available at **`http://127.0.0.1:8000/docs`** (Swagger UI) and `http://127.0.0.1:8000/redoc`.
+- **Key API Routes**:
+  - `GET /api/assets` — Lists supported equities, cryptos, and indices.
+  - `GET /api/market-data/{symbol}` — OHLCV historical candle bars.
+  - `GET /api/analysis/{symbol}` — Technical indicators, regime, AI signal & XAI factors.
+  - `GET /api/signals` — Active AI trade signals with ATR stop-loss and take-profit.
+  - `POST /api/paper-trades` — Validates order via Risk Engine and executes virtual trade.
+  - `GET /api/portfolio` — Realized/unrealized P&L, holdings, equity balance.
+  - `POST /api/backtest` — Runs walk-forward historical simulation with slippage/fees.
+  - `GET /api/blockchain/records` — Fetches verified on-chain trade records.
+  - `POST /api/webhooks/tradingview` — Authenticated listener for external TradingView alerts.
+
+---
+
+### 5. ⛓️ Blockchain Layer (Stellar Soroban)
+- **Directory**: [`contracts/trade_guard_audit/`](./contracts/trade_guard_audit)
+- **What it uses**:
+  - **Smart Contract Language**: Rust with `soroban-sdk = "21.0.0"`
+  - **Target Network**: Stellar Testnet (`https://soroban-testnet.stellar.org`)
+- **What it does**:
+  - Solves the "hindsight bias" problem common in trading bots.
+  - The moment an AI signal is generated, a **SHA-256 cryptographic hash** of the signal, model version, and strategy parameters is inscribed into the `TradeGuardAudit` smart contract.
+  - Anyone can audit a signal on the public ledger to verify that the prediction was made *before* the subsequent price movement occurred.
+- **Testing Contract**:
+  ```bash
+  cargo check --manifest-path contracts/trade_guard_audit/Cargo.toml --jobs 1
+  ```
+
+---
+
+### 6. 🤖 Trading Bot (TradingView Pine Script)
+- **Script Location**: [`pinescript/TradeGuard_AI_Strategy.pine`](./pinescript/TradeGuard_AI_Strategy.pine)
+- **What it does**:
+  - A Pine Script v5 strategy implementing EMA trend detection, RSI momentum filters, and ATR volatility brackets.
+  - Can be added directly to any TradingView chart.
+  - Configurable to send automated webhook alert POST requests directly to your TradeGuard AI backend (`/api/webhooks/tradingview`).
 
 ---
 
