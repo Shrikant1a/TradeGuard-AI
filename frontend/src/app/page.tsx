@@ -28,7 +28,7 @@ import { CopilotDrawer } from "@/components/CopilotDrawer";
 import { NewsDashboard } from "@/components/news/NewsDashboard";
 import { SignalFusionCard } from "@/components/news/SignalFusionCard";
 import { NewsDetailModal } from "@/components/news/NewsDetailModal";
-import { TradeGuardLogo } from "@/components/TradeGuardLogo";
+import { TradeGuardLogo, TradeGuardIcon } from "@/components/TradeGuardLogo";
 
 export default function TradeGuardApp() {
   // Navigation active tab
