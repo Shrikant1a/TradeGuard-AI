@@ -43,7 +43,7 @@ export function TickerTapeWidget({ symbols = DEFAULT_SYMBOLS }: TickerTapeWidget
       symbols,
       showSymbolLogo: true,
       isTransparent: true,
-      displayMode: "adaptive",
+      displayMode: "regular",
       colorTheme: "dark",
       locale: "en",
     });
