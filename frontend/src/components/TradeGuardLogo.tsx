@@ -16,13 +16,12 @@ export function TradeGuardIcon({ size = 36, className = "", glow = true }: Trade
 
   return (
     <div
-      className={`relative inline-flex items-center justify-center shrink-0 ${className}`}
+      className={`relative inline-flex items-center justify-center shrink-0 animate-logo-float ${className}`}
       style={{ width: size, height: size }}
     >
       {glow && (
         <div
-          className="absolute inset-0 rounded-2xl bg-cyan-500/30 blur-md -z-10 animate-pulse"
-          style={{ transform: "scale(1.15)" }}
+          className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-cyan-500/40 via-blue-500/30 to-purple-600/30 blur-md -z-10 animate-logo-glow"
         />
       )}
       <svg
@@ -31,7 +30,7 @@ export function TradeGuardIcon({ size = 36, className = "", glow = true }: Trade
         viewBox="0 0 48 48"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="w-full h-full drop-shadow-[0_2px_10px_rgba(6,182,212,0.35)]"
+        className="w-full h-full drop-shadow-[0_2px_12px_rgba(6,182,212,0.45)]"
       >
         <defs>
           {/* Cyberpunk Shield Gradient */}
@@ -79,31 +78,33 @@ export function TradeGuardIcon({ size = 36, className = "", glow = true }: Trade
           strokeDasharray="2 2"
         />
 
-        {/* Ascending Trading Candlesticks / Growth Vector */}
+        {/* Ascending Trading Candlesticks with Subtle Rhythm */}
         {/* Bar 1 (Left low) */}
-        <rect x="16" y="25" width="2.5" height="7" rx="1.2" fill="#0ea5e9" fillOpacity="0.8" />
+        <rect x="16" y="25" width="2.5" height="7" rx="1.2" fill="#0ea5e9" fillOpacity="0.85" className="animate-candle-bar" />
         <line x1="17.25" y1="23" x2="17.25" y2="34" stroke="#0ea5e9" strokeWidth="0.8" strokeLinecap="round" />
 
         {/* Bar 2 (Mid trend) */}
-        <rect x="22.75" y="19" width="2.5" height="11" rx="1.2" fill="#06b6d4" />
+        <rect x="22.75" y="19" width="2.5" height="11" rx="1.2" fill="#06b6d4" className="animate-candle-bar" style={{ animationDelay: "0.4s" }} />
         <line x1="24" y1="17" x2="24" y2="32" stroke="#22d3ee" strokeWidth="0.8" strokeLinecap="round" />
 
         {/* Bar 3 (Right high impulse) */}
-        <rect x="29.5" y="15" width="2.5" height="11" rx="1.2" fill="#10b981" />
+        <rect x="29.5" y="15" width="2.5" height="11" rx="1.2" fill="#10b981" className="animate-candle-bar" style={{ animationDelay: "0.8s" }} />
         <line x1="30.75" y1="13" x2="30.75" y2="28" stroke="#34d399" strokeWidth="0.8" strokeLinecap="round" />
 
-        {/* Bullish Alpha Signal Surge Path */}
+        {/* Bullish Alpha Signal Surge Path with flowing light wave */}
         <path
           d="M15 28L22 23L27 25L34 14"
           stroke={`url(#${grad3Id})`}
           strokeWidth="2.2"
           strokeLinecap="round"
           strokeLinejoin="round"
+          className="animate-surge-flow"
         />
 
-        {/* AI Neural Apex / Prediction Star */}
-        <circle cx="34" cy="14" r="2.5" fill="#f8fafc" />
+        {/* AI Neural Apex / Continuous Radar Beacon Wave */}
+        <circle cx="34" cy="14" r="2.5" stroke="#38bdf8" fill="none" className="animate-beacon-ring" />
         <circle cx="34" cy="14" r="4.2" stroke="#22d3ee" strokeWidth="1" strokeOpacity="0.8" />
+        <circle cx="34" cy="14" r="2.5" fill="#f8fafc" />
 
         {/* Stellar Blockchain Verification Node at Center Base */}
         <polygon
@@ -131,8 +132,8 @@ export function TradeGuardLogo({
 }: TradeGuardLogoProps) {
   const iconSizes = {
     sm: 28,
-    md: 38,
-    lg: 48,
+    md: 40,
+    lg: 52,
   };
 
   const titleSizes = {
@@ -144,20 +145,26 @@ export function TradeGuardLogo({
   const currentIconSize = iconSizes[size];
 
   return (
-    <div className={`flex items-center gap-2.5 select-none ${className}`}>
+    <div className={`flex items-center gap-3 select-none ${className}`}>
       <TradeGuardIcon size={currentIconSize} />
       {showText && (
         <div className="flex flex-col leading-none">
-          <div className={`${titleSizes[size]} font-black tracking-tight text-white flex items-center gap-1.5`}>
-            <span>TRADEGUARD</span>
-            <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent font-mono font-black text-xs px-1 py-0.5 rounded bg-cyan-950/60 border border-cyan-500/30">
+          <div className={`${titleSizes[size]} font-logo font-black tracking-[0.14em] flex items-center gap-1.5`}>
+            <span className="animate-logo-shimmer font-black drop-shadow-[0_0_15px_rgba(6,182,212,0.35)]">
+              TRADE<span className="text-cyan-400">GUARD</span>
+            </span>
+            <span className="relative inline-flex items-center justify-center font-mono font-black text-[11px] px-1.5 py-0.5 rounded-md bg-gradient-to-r from-cyan-950/90 to-blue-950/90 text-cyan-300 border border-cyan-400/50 shadow-[0_0_12px_rgba(6,182,212,0.55)]">
+              <span className="absolute inset-0 rounded-md bg-cyan-400/20 animate-ping opacity-40 pointer-events-none" />
               AI
             </span>
           </div>
           {subtitle && (
-            <span className="text-[10px] text-slate-400 font-medium tracking-wide mt-1">
-              {subtitle}
-            </span>
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#10b981]" />
+              <span className="text-[10px] text-slate-400 font-medium tracking-wide">
+                {subtitle}
+              </span>
+            </div>
           )}
         </div>
       )}
