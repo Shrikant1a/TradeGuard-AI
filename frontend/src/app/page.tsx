@@ -8,7 +8,7 @@ import {
   TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, 
   Zap, Play, RefreshCw, Bot, ExternalLink, ShieldAlert,
   ChevronRight, ArrowUpRight, DollarSign, Layers, Check, Copy, Globe, Newspaper,
-  Menu, X, ChevronDown
+  Menu, X, ChevronDown, BookOpen
 } from "lucide-react";
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, 
@@ -30,6 +30,7 @@ import { SignalFusionCard } from "@/components/news/SignalFusionCard";
 import { NewsDetailModal } from "@/components/news/NewsDetailModal";
 import { TradeGuardLogo, TradeGuardIcon } from "@/components/TradeGuardLogo";
 import { SplashIntroScreen } from "@/components/SplashIntroScreen";
+import { HowToUseGuide } from "@/components/HowToUseGuide";
 
 // Predefined verified institutional asset coverage
 const POPULAR_ASSETS = [
@@ -319,6 +320,7 @@ export default function TradeGuardApp() {
   // Navigation Links
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "guide", label: "How to Use", icon: BookOpen, badge: "START" },
     { id: "news", label: "News Intelligence", icon: Newspaper, badge: "LIVE" },
     { id: "scanner", label: "Market Scanner", icon: Binary },
     { id: "analyzer", label: "AI Stock Analyzer", icon: Cpu },
@@ -528,6 +530,20 @@ export default function TradeGuardApp() {
               API Online
             </div>
 
+            {/* How to Use Button */}
+            <button
+              onClick={() => setActiveTab("guide")}
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all ${
+                activeTab === "guide"
+                  ? "bg-cyan-500 text-slate-950 border-cyan-400 shadow-md shadow-cyan-500/20"
+                  : "bg-slate-900 border-cyan-500/30 text-cyan-300 hover:bg-slate-800 hover:text-white"
+              }`}
+              title="How to Use TradeGuard AI"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">How to Use</span>
+            </button>
+
             {/* Execute Paper Order Button */}
             <button
               onClick={() => handleOpenTradeModal(currentSymbol, "BUY", analysisData?.metrics?.close || 224.23)}
@@ -567,6 +583,16 @@ export default function TradeGuardApp() {
               <TickerTapeWidget />
             </div>
           )}
+          {/* ========================================================
+              VIEW: HOW TO USE (Comprehensive Interactive Manual)
+          ======================================================== */}
+          {activeTab === "guide" && (
+            <HowToUseGuide
+              onNavigateTab={(tab) => setActiveTab(tab)}
+              onOpenTradeModal={() => handleOpenTradeModal(currentSymbol, "BUY", analysisData?.metrics?.close || 224.23)}
+            />
+          )}
+
           {/* ========================================================
               VIEW 1: DASHBOARD
           ======================================================== */}
