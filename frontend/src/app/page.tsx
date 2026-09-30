@@ -28,7 +28,7 @@ import { CopilotDrawer } from "@/components/CopilotDrawer";
 import { NewsDashboard } from "@/components/news/NewsDashboard";
 import { SignalFusionCard } from "@/components/news/SignalFusionCard";
 import { NewsDetailModal } from "@/components/news/NewsDetailModal";
-import { TradeGuardLogo, TradeGuardIcon } from "@/components/TradeGuardLogo";
+import { TradeGuardLogo } from "@/components/TradeGuardLogo";
 
 export default function TradeGuardApp() {
   // Navigation active tab
@@ -414,16 +414,6 @@ export default function TradeGuardApp() {
               <Menu className="w-5 h-5" />
             </button>
 
-            {/* Top Corner Brand Logo */}
-            <div className="flex items-center gap-2 shrink-0">
-              <TradeGuardIcon size={30} glow={true} />
-              <div className="hidden sm:flex flex-col leading-none">
-                <span className="text-xs font-black tracking-tight text-white flex items-center gap-1">
-                  TRADEGUARD <span className="text-cyan-400 font-mono text-[10px]">AI</span>
-                </span>
-                <span className="text-[9px] text-slate-400 font-medium">Verified Intelligence</span>
-              </div>
-            </div>
 
             {/* Symbol Search Bar */}
             <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 w-full max-w-[200px] sm:max-w-xs md:max-w-sm">
