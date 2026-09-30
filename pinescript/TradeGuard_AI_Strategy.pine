@@ -1,0 +1,121 @@
+//@version=5
+strategy("TradeGuard AI - Probabilistic Multi-Factor Signal Engine", overlay=true, margin_long=100, margin_short=100, initial_capital=1000000, default_qty_type=strategy.percent_of_equity, default_qty_value=5)
+
+// ============================================================================
+// DISCLAIMER:
+// TradeGuard AI provides research, multi-factor technical analysis, and 
+// probabilistic model signal generation.
+// This script DOES NOT claim guaranteed profits, 100% accuracy, or risk-free trading.
+// Markets carry inherent volatility; all models yield probabilistic estimates.
+// ============================================================================
+
+// --- User Inputs ---
+grp_ma = "Moving Average Trend Filters"
+fast_ema_len = input.int(20, "Fast EMA Length", minval=1, group=grp_ma)
+slow_ema_len = input.int(50, "Slow EMA Length", minval=1, group=grp_ma)
+baseline_sma_len = input.int(200, "Macro SMA Trend Baseline", minval=1, group=grp_ma)
+
+grp_osc = "Oscillators & Momentum"
+rsi_len = input.int(14, "RSI Length", minval=1, group=grp_osc)
+rsi_oversold = input.int(35, "RSI Oversold Level", minval=1, maxval=50, group=grp_osc)
+rsi_overbought = input.int(65, "RSI Overbought Level", minval=50, maxval=100, group=grp_osc)
+macd_fast = input.int(12, "MACD Fast Period", minval=1, group=grp_osc)
+macd_slow = input.int(26, "MACD Slow Period", minval=1, group=grp_osc)
+macd_signal_len = input.int(9, "MACD Signal Period", minval=1, group=grp_osc)
+
+grp_vol = "Volume & Volatility"
+vol_sma_len = input.int(20, "Volume Moving Average", minval=1, group=grp_vol)
+atr_len = input.int(14, "ATR Period", minval=1, group=grp_vol)
+atr_multiplier = input.float(1.8, "ATR Stop Loss Multiplier", minval=0.5, step=0.1, group=grp_vol)
+rr_ratio = input.float(2.0, "Risk / Reward Ratio", minval=1.0, step=0.1, group=grp_vol)
+
+// --- Indicator Calculations ---
+fast_ema = ta.ema(close, fast_ema_len)
+slow_ema = ta.ema(close, slow_ema_len)
+macro_sma = ta.sma(close, baseline_sma_len)
+
+rsi = ta.rsi(close, rsi_len)
+[macd_line, macd_signal, macd_hist] = ta.macd(close, macd_fast, macd_slow, macd_signal_len)
+
+vol_sma = ta.sma(volume, vol_sma_len)
+vol_confirmed = volume > (vol_sma * 1.05)
+atr = ta.atr(atr_len)
+
+// Bollinger Bands for Mean Reversion & Volatility Squeeze
+bb_len = 20
+bb_mult = 2.0
+bb_basis = ta.sma(close, bb_len)
+bb_dev = bb_mult * ta.stdev(close, bb_len)
+bb_upper = bb_basis + bb_dev
+bb_lower = bb_basis - bb_dev
+
+// --- Probabilistic Scoring Setup (Multi-Factor Aggregation) ---
+bull_score = 0
+bear_score = 0
+
+// 1. Trend Factor (Weight: 2)
+if fast_ema > slow_ema and close > macro_sma
+    bull_score += 2
+else if fast_ema < slow_ema and close < macro_sma
+    bear_score += 2
+
+// 2. Momentum Factor (Weight: 2)
+if macd_line > macd_signal and macd_hist > 0
+    bull_score += 2
+else if macd_line < macd_signal and macd_hist < 0
+    bear_score += 2
+
+// 3. RSI Oscillations (Weight: 1)
+if rsi > 48 and rsi < rsi_overbought
+    bull_score += 1
+else if rsi < 52 and rsi > rsi_oversold
+    bear_score += 1
+
+// 4. Volume Confirmation (Weight: 1)
+if vol_confirmed
+    if bull_score > bear_score
+        bull_score += 1
+    else if bear_score > bull_score
+        bear_score += 1
+
+// --- Signal Triggers ---
+buy_condition = (bull_score >= 4) and ta.crossover(fast_ema, slow_ema) and (close > macro_sma)
+sell_condition = (bear_score >= 4) and ta.crossunder(fast_ema, slow_ema) and (close < macro_sma)
+volatility_warning = atr > (ta.sma(atr, 20) * 1.5)
+
+// --- Order Execution (Paper / Backtest simulation) ---
+var float entry_price = na
+var float stop_loss = na
+var float take_profit = na
+
+if (buy_condition and strategy.position_size == 0)
+    entry_price := close
+    stop_loss := close - (atr * atr_multiplier)
+    take_profit := close + (atr * atr_multiplier * rr_ratio)
+    strategy.entry("TG_BUY", strategy.long)
+    strategy.exit("TG_EXIT_LONG", "TG_BUY", stop=stop_loss, limit=take_profit)
+
+if (sell_condition and strategy.position_size > 0)
+    strategy.close("TG_BUY", comment="Signal Invalidation")
+
+// --- Plotting Visualizations ---
+plot(fast_ema, "EMA Fast (20)", color=color.new(color.cyan, 0), linewidth=2)
+plot(slow_ema, "EMA Slow (50)", color=color.new(color.blue, 0), linewidth=2)
+plot(macro_sma, "Macro SMA (200)", color=color.new(color.purple, 30), linewidth=2)
+
+p_upper = plot(bb_upper, "BB Upper", color=color.new(color.gray, 60))
+p_lower = plot(bb_lower, "BB Lower", color=color.new(color.gray, 60))
+fill(p_upper, p_lower, color=color.new(color.blue, 95), title="BB Channel")
+
+plotshape(buy_condition, title="TradeGuard BUY Alert", style=shape.triangleup, location=location.belowbar, color=color.green, size=size.small, text="TG BUY")
+plotshape(sell_condition, title="TradeGuard SELL Alert", style=shape.triangledown, location=location.abovebar, color=color.red, size=size.small, text="TG SELL")
+plotshape(volatility_warning and not buy_condition and not sell_condition, title="High Volatility Alert", style=shape.flag, location=location.top, color=color.orange, size=size.tiny, text="VOL WARN")
+
+// ============================================================================
+// WEBHOOK ALERTS FOR TRADEGUARD AI BACKEND
+// Webhook URL: https://your-domain.com/api/webhooks/tradingview
+// Webhook Message format matches TradeGuard AI Ingestion Schema
+// ============================================================================
+alertcondition(buy_condition, title="TradeGuard AI BUY Signal", message='{"symbol": "{{ticker}}", "price": "{{close}}", "volume": "{{volume}}", "time": "{{time}}", "signal": "BUY", "source": "tradingview"}')
+alertcondition(sell_condition, title="TradeGuard AI SELL Signal", message='{"symbol": "{{ticker}}", "price": "{{close}}", "volume": "{{volume}}", "time": "{{time}}", "signal": "SELL", "source": "tradingview"}')
+alertcondition(volatility_warning, title="TradeGuard AI Risk Warning", message='{"symbol": "{{ticker}}", "price": "{{close}}", "volume": "{{volume}}", "time": "{{time}}", "signal": "RISK_ALERT", "source": "tradingview"}')
