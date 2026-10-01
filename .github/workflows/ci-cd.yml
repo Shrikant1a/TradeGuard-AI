@@ -1,0 +1,193 @@
+name: TradeGuard AI CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "20"
+
+jobs:
+  # ============================================================================
+  # 1. Backend CI: Dependencies, Pytest Test Suite, and API Verification
+  # ============================================================================
+  backend-ci:
+    name: Backend Tests & Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install Backend Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Run Backend Pytest Suite
+        run: |
+          python -m pytest backend/tests -v --durations=10
+
+      - name: Validate Schema and Cache Fallbacks
+        run: |
+          python -c "from backend.app.config import settings; print(f'Validated Config: {settings.APP_NAME} v{settings.APP_VERSION}')"
+          python -c "from backend.app.db.database import engine; print(f'Database Engine Ready: {engine.dialect.name}')"
+
+  # ============================================================================
+  # 2. Frontend CI: TypeScript Verification & Next.js Production Build
+  # ============================================================================
+  frontend-ci:
+    name: Frontend Build & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: frontend/package.json
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci || npm install
+
+      - name: Build Next.js Production Bundle
+        working-directory: ./frontend
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          NEXT_PUBLIC_API_URL: "http://127.0.0.1:8000"
+        run: npm run build
+
+  # ============================================================================
+  # 3. Docker CI: Multi-Stage Image Build & Container Health Validation
+  # ============================================================================
+  docker-ci:
+    name: Docker Build & Health Probe
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Backend Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          load: true
+          tags: tradeguard-api:test
+
+      - name: Spin up Test Container
+        run: |
+          docker run -d --name test-api -p 8000:8000 tradeguard-api:test
+          sleep 4
+
+      - name: Validate Container Liveness Health Probe
+        run: |
+          curl --retry 5 --retry-delay 2 --retry-connrefused -f http://localhost:8000/health || exit 1
+          echo "Liveness check passed!"
+
+      - name: Verify Non-Root User Security Policy
+        run: |
+          USER_NAME=$(docker exec test-api whoami)
+          echo "Container running as user: $USER_NAME"
+          if [ "$USER_NAME" = "root" ]; then
+            echo "ERROR: Container is running as root!"
+            exit 1
+          fi
+
+      - name: Clean up Container
+        if: always()
+        run: docker rm -f test-api || true
+
+  # ============================================================================
+  # 4. Stellar / Soroban Smart Contract Verification
+  # ============================================================================
+  soroban-contract-ci:
+    name: Stellar Soroban Contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            contracts/trade_guard_audit/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('contracts/trade_guard_audit/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Check Soroban Audit Contract Compilation
+        run: |
+          cargo check --manifest-path contracts/trade_guard_audit/Cargo.toml --jobs 1
+
+  # ============================================================================
+  # 5. Security & Secret Hygiene Audit
+  # ============================================================================
+  security-audit:
+    name: Security & Secret Hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Verify No Secrets Committed
+        run: |
+          echo "Checking for accidental secret or environment commits..."
+          if git ls-files | grep -E '^(\.env|\.env\.local|\.env\.production|tradeguard\.db)$'; then
+            echo "SECURITY VIOLATION: Sensitive environment or database file detected in git tracking!"
+            exit 1
+          fi
+          echo "Secret hygiene scan passed: No .env or database binaries tracked."
+
+  # ============================================================================
+  # 6. CD Deployment Gate
+  # ============================================================================
+  cd-deploy:
+    name: Production Deployment Gate
+    runs-on: ubuntu-latest
+    needs: [backend-ci, frontend-ci, docker-ci, soroban-contract-ci, security-audit]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deployment Gate Summary
+        run: |
+          echo "=========================================================="
+          echo "  TradeGuard AI CI/CD: All Production Checks Passed 100% "
+          echo "=========================================================="
+          echo "✓ Backend Tests: PASSED"
+          echo "✓ Frontend Next.js Build: PASSED"
+          echo "✓ Docker Container Healthcheck: PASSED"
+          echo "✓ Stellar Soroban Smart Contract: PASSED"
+          echo "✓ Secret Hygiene: PASSED"
+          echo "Target Deployments: Vercel (Frontend) | Docker Registry (API/Worker)"

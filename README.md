@@ -1,5 +1,12 @@
 # TradeGuard AI
 
+[![CI/CD Pipeline](https://github.com/Shrikant1a/TradeGuard-AI/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Shrikant1a/TradeGuard-AI/actions/workflows/ci-cd.yml)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://github.com/Shrikant1a/TradeGuard-AI)
+[![Stellar Soroban](https://img.shields.io/badge/Stellar-Soroban%20Smart%20Contracts-7D4cdb?logo=stellar&logoColor=white)](https://stellar.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Next.js](https://img.shields.io/badge/Next.js-16%20(React%2019)-black?logo=next.js&logoColor=white)](https://nextjs.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 > **"AI-Powered Trading Intelligence with Blockchain-Verified Decisions"**  
 > **Author:** Shrikant Aher ([@Shrikant1a](https://github.com/Shrikant1a))
 
