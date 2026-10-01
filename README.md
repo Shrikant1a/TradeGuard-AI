@@ -1,6 +1,7 @@
 # TradeGuard AI
 
 [![CI/CD Pipeline](https://github.com/Shrikant1a/TradeGuard-AI/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Shrikant1a/TradeGuard-AI/actions/workflows/ci-cd.yml)
+[![Live Demo](https://img.shields.io/badge/Live%20Website-tradeguardd.netlify.app-00C7B7?style=flat&logo=netlify&logoColor=white)](https://tradeguardd.netlify.app/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://github.com/Shrikant1a/TradeGuard-AI)
 [![Stellar Soroban](https://img.shields.io/badge/Stellar-Soroban%20Smart%20Contracts-7D4cdb?logo=stellar&logoColor=white)](https://stellar.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -8,7 +9,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > **"AI-Powered Trading Intelligence with Blockchain-Verified Decisions"**  
-> **Author:** Shrikant Aher ([@Shrikant1a](https://github.com/Shrikant1a))
+> **Author:** Shrikant Aher ([@Shrikant1a](https://github.com/Shrikant1a))  
+> **Live App:** [https://tradeguardd.netlify.app/](https://tradeguardd.netlify.app/)
 
 TradeGuard AI is an institutional-grade full-stack trading intelligence and paper trading platform. It analyzes financial assets using historical market data, multi-factor technical indicators, machine-learning ensembles, and a dedicated pre-trade risk engine—while publishing cryptographic proof of every trade signal onto the **Stellar Soroban** blockchain.
 
@@ -699,6 +701,7 @@ The Next.js frontend is configured to connect to your Dockerized FastAPI backend
 **Shrikant Aher**  
 - GitHub: [@Shrikant1a](https://github.com/Shrikant1a)
 - Project Repository: [TradeGuard AI](https://github.com/Shrikant1a/TradeGuard-AI)
+- Live Deployment: [https://tradeguardd.netlify.app/](https://tradeguardd.netlify.app/)
 
 ---
 
