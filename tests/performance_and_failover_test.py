@@ -2,9 +2,11 @@ import asyncio
 import time
 import httpx
 import sys
+import pytest
 
 BASE_URL = "http://127.0.0.1:8000"
 
+@pytest.mark.asyncio
 async def test_health_endpoint(client: httpx.AsyncClient):
     print("\n--- Test 1: Comprehensive Production Health Check ---")
     t0 = time.time()
@@ -18,6 +20,7 @@ async def test_health_endpoint(client: httpx.AsyncClient):
     print(f"Circuit Breakers: {list(data['components']['circuit_breakers'].keys())}")
     print("PASS: Health check verified.")
 
+@pytest.mark.asyncio
 async def test_market_data_cache_concurrency(client: httpx.AsyncClient):
     print("\n--- Test 2: Concurrent Market Data Request Concurrency (50 concurrent) ---")
     # First prime the cache
@@ -38,6 +41,7 @@ async def test_market_data_cache_concurrency(client: httpx.AsyncClient):
     assert success_count == 50, "Some market requests failed under concurrency"
     print("PASS: Concurrent market data caching verified.")
 
+@pytest.mark.asyncio
 async def test_ai_analysis_cache(client: httpx.AsyncClient):
     print("\n--- Test 3: AI Analysis Caching & Async Blockchain ---")
     t0 = time.time()
@@ -61,6 +65,7 @@ async def test_ai_analysis_cache(client: httpx.AsyncClient):
     assert data2.get("is_cached") is True, "Second request was not served from AIAnalysisCache"
     print("PASS: AI analysis caching verified.")
 
+@pytest.mark.asyncio
 async def test_async_backtesting_job_queue(client: httpx.AsyncClient):
     print("\n--- Test 4: Asynchronous Backtest Job System ---")
     payload = {
@@ -98,6 +103,7 @@ async def test_async_backtesting_job_queue(client: httpx.AsyncClient):
     assert completed, "Backtest job failed to reach COMPLETED status"
     print("PASS: Asynchronous backtest job queue verified.")
 
+@pytest.mark.asyncio
 async def test_rate_limiter_protection(client: httpx.AsyncClient):
     print("\n--- Test 5: Rate Limiter Protection ---")
     # Rapidly fire requests to a protected endpoint
