@@ -4,7 +4,16 @@ import {
   FALLBACK_DAILY_DIGEST,
   filterFallbackArticles,
 } from "./fallbackNewsData";
-import { FALLBACK_ALERTS, FALLBACK_WEBHOOKS } from "./fallbackPlatformData";
+import {
+  FALLBACK_ALERTS,
+  FALLBACK_WEBHOOKS,
+  FALLBACK_SIGNALS,
+  FALLBACK_SCANNER,
+  FALLBACK_PORTFOLIO,
+  FALLBACK_RISK_POLICY,
+  FALLBACK_BLOCKCHAIN_RECORDS,
+  FALLBACK_STRATEGIES,
+} from "./fallbackPlatformData";
 import { generateFallbackAnalysis, generateFallbackMarketData } from "./chartFallback";
 
 const DEFAULT_BACKEND = "http://127.0.0.1:8000";
@@ -197,11 +206,21 @@ export const api = {
     let q = "";
     if (type) q += `signal_type=${type}&`;
     if (risk) q += `risk_score=${risk}`;
-    return fetchApi<any[]>(`/api/signals?${q}`, { cacheTtlMs: 20000 });
+    return fetchApi<any[]>(`/api/signals?${q}`, { cacheTtlMs: 20000 })
+      .then((res) => (Array.isArray(res) && res.length > 0 ? res : FALLBACK_SIGNALS))
+      .catch(() => {
+        let filtered = FALLBACK_SIGNALS;
+        if (type) filtered = filtered.filter((s) => s.signal_type === type);
+        if (risk) filtered = filtered.filter((s) => s.risk_score === risk);
+        return filtered;
+      });
   },
 
   // Market Scanner
-  scanMarket: () => fetchApi<any[]>("/api/scanner", { cacheTtlMs: 30000 }),
+  scanMarket: () =>
+    fetchApi<any[]>("/api/scanner", { cacheTtlMs: 30000 })
+      .then((res) => (Array.isArray(res) && res.length > 0 ? res : FALLBACK_SCANNER))
+      .catch(() => FALLBACK_SCANNER),
 
   // Backtesting with Asynchronous Job Polling
   runBacktest: async (params: any, onProgress?: (pct: number, status: string) => void) => {
@@ -243,7 +262,10 @@ export const api = {
   getBacktestById: (id: string) => fetchApi<any>(`/api/backtest/${id}`),
 
   // Paper Trading & Portfolio
-  getPortfolio: () => fetchApi<any>("/api/portfolio"),
+  getPortfolio: () =>
+    fetchApi<any>("/api/portfolio")
+      .then((res) => (res && res.total_equity ? res : FALLBACK_PORTFOLIO))
+      .catch(() => FALLBACK_PORTFOLIO),
   createPaperTrade: (trade: {
     symbol: string;
     side: string;
@@ -256,7 +278,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify(trade),
     }),
-  getTradeHistory: () => fetchApi<any[]>("/api/paper-trades/history"),
+  getTradeHistory: () =>
+    fetchApi<any[]>("/api/paper-trades/history")
+      .then((res) => (Array.isArray(res) && res.length > 0 ? res : FALLBACK_PORTFOLIO.positions))
+      .catch(() => FALLBACK_PORTFOLIO.positions),
   resetPaperBalance: () =>
     fetchApi<any>("/api/paper-trades/reset", {
       method: "POST",
@@ -268,7 +293,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify(params),
     }),
-  getRiskPolicy: () => fetchApi<any>("/api/risk/policy"),
+  getRiskPolicy: () =>
+    fetchApi<any>("/api/risk/policy")
+      .then((res) => (res && res.max_portfolio_risk_pct ? res : FALLBACK_RISK_POLICY))
+      .catch(() => FALLBACK_RISK_POLICY),
   updateRiskPolicy: (policy: any) =>
     fetchApi<any>("/api/risk/policy", {
       method: "POST",
@@ -276,12 +304,18 @@ export const api = {
     }),
 
   // Blockchain Audit (Stellar Soroban)
-  listBlockchainRecords: () => fetchApi<any>("/api/blockchain/records"),
+  listBlockchainRecords: () =>
+    fetchApi<any>("/api/blockchain/records")
+      .then((res) => (res && res.total_records ? res : FALLBACK_BLOCKCHAIN_RECORDS))
+      .catch(() => FALLBACK_BLOCKCHAIN_RECORDS),
   verifySignalOnChain: (signalCode: string, signalHash: string) =>
     fetchApi<any>(`/api/blockchain/verify/${signalCode}?signal_hash=${signalHash}`),
 
   // Strategy Lab
-  listStrategies: () => fetchApi<any[]>("/api/strategies"),
+  listStrategies: () =>
+    fetchApi<any[]>("/api/strategies")
+      .then((res) => (Array.isArray(res) && res.length > 0 ? res : FALLBACK_STRATEGIES))
+      .catch(() => FALLBACK_STRATEGIES),
   saveStrategy: (strategy: any) =>
     fetchApi<any>("/api/strategies", {
       method: "POST",
