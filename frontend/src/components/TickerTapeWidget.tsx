@@ -32,8 +32,13 @@ export function TickerTapeWidget({ symbols = DEFAULT_SYMBOLS }: TickerTapeWidget
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
-    containerRef.current.innerHTML = "";
+    const container = containerRef.current;
+    if (!container) return;
+    container.innerHTML = "";
+
+    const widgetDiv = document.createElement("div");
+    widgetDiv.className = "tradingview-widget-container__widget";
+    container.appendChild(widgetDiv);
 
     const script = document.createElement("script");
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js";
@@ -47,12 +52,12 @@ export function TickerTapeWidget({ symbols = DEFAULT_SYMBOLS }: TickerTapeWidget
       colorTheme: "dark",
       locale: "en",
     });
-    containerRef.current.appendChild(script);
+    container.appendChild(script);
 
     return () => {
-      if (containerRef.current) containerRef.current.innerHTML = "";
+      if (container) container.innerHTML = "";
     };
-  }, []);
+  }, [symbols]);
 
   return (
     <div
