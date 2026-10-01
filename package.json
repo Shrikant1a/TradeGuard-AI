@@ -14,6 +14,7 @@
     "mobile": "npm --prefix mobile run start",
     "mobile:tunnel": "npm --prefix mobile run tunnel",
     "mobile:lan": "npm --prefix mobile run lan",
+    "build:apk": "npm --prefix mobile run build:preview",
     "build": "npm --prefix frontend run build",
     "start": "npm --prefix frontend run start",
     "lint": "npm --prefix frontend run lint"

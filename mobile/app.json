@@ -8,7 +8,7 @@
     "scheme": "tradeguardd",
     "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#0a0f1e"
     },
@@ -19,7 +19,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundColor": "#0a0f1e"
       },
       "package": "com.tradeguardd.app",
@@ -39,14 +39,7 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/notification-icon.png",
-          "color": "#06b6d4",
-          "sounds": []
-        }
-      ],
+      "expo-notifications",
       [
         "expo-splash-screen",
         {
