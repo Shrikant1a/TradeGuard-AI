@@ -3,13 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "frontend"
+    "frontend",
+    "mobile"
   ],
   "scripts": {
     "dev": "node scripts/dev.js",
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:backend": "node scripts/dev.js --backend-only",
     "backend": "node scripts/dev.js --backend-only",
+    "mobile": "npm --prefix mobile run start",
+    "mobile:tunnel": "npm --prefix mobile run tunnel",
+    "mobile:lan": "npm --prefix mobile run lan",
     "build": "npm --prefix frontend run build",
     "start": "npm --prefix frontend run start",
     "lint": "npm --prefix frontend run lint"
