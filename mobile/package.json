@@ -34,8 +34,8 @@
     "android:tunnel": "expo start --android --tunnel",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "build:android": "eas build --platform android",
-    "build:preview": "eas build --platform android --profile preview"
+    "build:android": "npx --yes eas-cli build --platform android",
+    "build:preview": "npx --yes eas-cli build --platform android --profile preview"
   },
   "private": true
 }
