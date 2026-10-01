@@ -32,6 +32,7 @@ import { TradeGuardLogo, TradeGuardIcon } from "@/components/TradeGuardLogo";
 import { SplashIntroScreen } from "@/components/SplashIntroScreen";
 import { HowToUseGuide } from "@/components/HowToUseGuide";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { FALLBACK_ARTICLES } from "@/lib/fallbackNewsData";
 
 // Predefined verified institutional asset coverage
 const POPULAR_ASSETS = [
@@ -73,9 +74,9 @@ export default function TradeGuardApp() {
   const [webhookLogs, setWebhookLogs] = useState<any[]>([]);
 
   // News Intelligence state
-  const [dashboardNews, setDashboardNews] = useState<any[]>([]);
+  const [dashboardNews, setDashboardNews] = useState<any[]>(() => FALLBACK_ARTICLES.slice(0, 3));
   const [portfolioNews, setPortfolioNews] = useState<any>(null);
-  const [stockNewsList, setStockNewsList] = useState<any[]>([]);
+  const [stockNewsList, setStockNewsList] = useState<any[]>(() => FALLBACK_ARTICLES.slice(0, 4));
   const [selectedNewsArticle, setSelectedNewsArticle] = useState<any>(null);
 
   // Modals & Drawers

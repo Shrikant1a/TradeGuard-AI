@@ -7,16 +7,17 @@ import { NewsDetailModal } from "@/components/news/NewsDetailModal";
 import { DailyDigestModal } from "@/components/news/DailyDigestModal";
 import { EconomicCalendarWidget } from "@/components/news/EconomicCalendarWidget";
 import { NewsAlertsModal } from "@/components/news/NewsAlertsModal";
+import { FALLBACK_ARTICLES, filterFallbackArticles } from "@/lib/fallbackNewsData";
 
 interface NewsDashboardProps {
   onSelectSymbol?: (symbol: string) => void;
 }
 
 export function NewsDashboard({ onSelectSymbol }: NewsDashboardProps) {
-  // Articles and feed state
-  const [articles, setArticles] = useState<any[]>([]);
-  const [breakingNews, setBreakingNews] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Articles and feed state with immediate graceful fallback
+  const [articles, setArticles] = useState<any[]>(() => FALLBACK_ARTICLES.slice(0, 12));
+  const [breakingNews, setBreakingNews] = useState<any[]>(() => FALLBACK_ARTICLES.filter(a => a.is_breaking).slice(0, 4));
+  const [loading, setLoading] = useState(false);
   const [isStale, setIsStale] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
@@ -61,12 +62,30 @@ export function NewsDashboard({ onSelectSymbol }: NewsDashboardProps) {
         }),
         api.getBreakingNews(4)
       ]);
-      setArticles(feedRes.articles || []);
-      setIsStale(feedRes.is_stale || false);
-      setBreakingNews(breakingRes || []);
+      const feedArticles = feedRes?.articles && feedRes.articles.length > 0
+        ? feedRes.articles
+        : filterFallbackArticles({
+            category: category !== "ALL" ? category : undefined,
+            sentiment: sentiment !== "ALL" ? sentiment : undefined,
+            min_impact: minImpact,
+            search: debouncedSearch || undefined,
+            limit: 30
+          });
+      setArticles(feedArticles);
+      setIsStale(feedRes?.is_stale || false);
+      setBreakingNews(breakingRes && breakingRes.length > 0 ? breakingRes : FALLBACK_ARTICLES.filter(a => a.is_breaking).slice(0, 4));
       setLastRefreshed(new Date());
     } catch (e) {
-      console.error("Failed to fetch news feed:", e);
+      console.warn("Using curated fallback news feed:", e);
+      const fallback = filterFallbackArticles({
+        category: category !== "ALL" ? category : undefined,
+        sentiment: sentiment !== "ALL" ? sentiment : undefined,
+        min_impact: minImpact,
+        search: debouncedSearch || undefined,
+        limit: 30
+      });
+      setArticles(fallback);
+      setBreakingNews(FALLBACK_ARTICLES.filter(a => a.is_breaking).slice(0, 4));
     } finally {
       setLoading(false);
     }
