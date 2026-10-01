@@ -30,8 +30,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Step 2: Copy backend application source code
 COPY . /app/backend
 
-# Set proper non-root file ownership
-RUN chown -R appuser:appgroup /app /home/appuser
+# Create runtime storage directories and set proper non-root ownership
+RUN mkdir -p /app/data && \
+    chown -R appuser:appgroup /app /home/appuser && \
+    chmod -R 775 /app /app/data
 
 # Switch to non-root user
 USER appuser
