@@ -1,6 +1,7 @@
 # TradeGuard AI
 
-> **"AI-Powered Trading Intelligence with Blockchain-Verified Decisions"**
+> **"AI-Powered Trading Intelligence with Blockchain-Verified Decisions"**  
+> **Author:** Shrikant Aher ([@Shrikant1a](https://github.com/Shrikant1a))
 
 TradeGuard AI is an institutional-grade full-stack trading intelligence and paper trading platform. It analyzes financial assets using historical market data, multi-factor technical indicators, machine-learning ensembles, and a dedicated pre-trade risk engine—while publishing cryptographic proof of every trade signal onto the **Stellar Soroban** blockchain.
 
@@ -686,7 +687,16 @@ The Next.js frontend is configured to connect to your Dockerized FastAPI backend
 
 ---
 
+## 👤 Author
+
+**Shrikant Aher**  
+- GitHub: [@Shrikant1a](https://github.com/Shrikant1a)
+- Project Repository: [TradeGuard AI](https://github.com/Shrikant1a/TradeGuard-AI)
+
+---
+
 ## License
 
-MIT License. Designed and built for research and paper trading.
+MIT License. Designed and built for research and paper trading.  
+Copyright (c) 2026 Shrikant Aher.
 
