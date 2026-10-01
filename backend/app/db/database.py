@@ -3,7 +3,16 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy import event
 from backend.app.config import settings
 
-is_sqlite = "sqlite" in settings.DATABASE_URL.lower()
+# Normalize DATABASE_URL for async engines (e.g. Supabase postgres:// -> postgresql+asyncpg://)
+raw_db_url = settings.DATABASE_URL
+if raw_db_url.startswith("postgres://"):
+    db_url = raw_db_url.replace("postgres://", "postgresql+asyncpg://", 1)
+elif raw_db_url.startswith("postgresql://") and not raw_db_url.startswith("postgresql+"):
+    db_url = raw_db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+else:
+    db_url = raw_db_url
+
+is_sqlite = "sqlite" in db_url.lower()
 
 # Production Engine Configuration
 engine_kwargs = {
@@ -17,7 +26,7 @@ if is_sqlite:
         "timeout": 30.0,
     }
 else:
-    # Production connection pool for PostgreSQL / MySQL
+    # Production connection pool for PostgreSQL / Supabase
     engine_kwargs.update({
         "pool_size": 25,
         "max_overflow": 15,
@@ -26,7 +35,7 @@ else:
         "pool_pre_ping": True,
     })
 
-engine = create_async_engine(settings.DATABASE_URL, **engine_kwargs)
+engine = create_async_engine(db_url, **engine_kwargs)
 
 # For SQLite, enforce WAL mode, busy timeout, and normal synchronous writes for concurrency
 if is_sqlite:

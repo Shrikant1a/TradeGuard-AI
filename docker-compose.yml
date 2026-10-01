@@ -1,0 +1,108 @@
+# ==============================================================================
+# TradeGuard AI - Production-Grade Local & Containerized Architecture
+# Target: FastAPI Backend + Background Worker + Redis Cache Engine
+# Database: Supabase PostgreSQL (or local persistent volume fallback)
+# Cache: Upstash Redis in Production / Local Redis in Development
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. FastAPI Backend API Service
+  # ----------------------------------------------------------------------------
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tradeguard-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - RUN_EMBEDDED_WORKER=false
+      - REDIS_URL=redis://redis:6379/0
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:////app/data/tradeguard.db}
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - tradeguard_data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ----------------------------------------------------------------------------
+  # 2. Autonomous Background Worker
+  # ----------------------------------------------------------------------------
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tradeguard-worker
+    restart: unless-stopped
+    command: ["python", "-m", "backend.app.worker"]
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:////app/data/tradeguard.db}
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - tradeguard_data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # ----------------------------------------------------------------------------
+  # 3. Local High-Performance Redis Cache
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: tradeguard-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ----------------------------------------------------------------------------
+  # 4. Optional Local PostgreSQL (Enable with: docker compose --profile postgres up)
+  # Production targets Supabase PostgreSQL directly.
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: tradeguard-postgres
+    profiles: ["postgres"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-tradeguard}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  tradeguard_data:
+    name: tradeguard_data
+  redis_data:
+    name: tradeguard_redis_data
+  postgres_data:
+    name: tradeguard_postgres_data

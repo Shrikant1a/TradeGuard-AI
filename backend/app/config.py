@@ -17,10 +17,17 @@ class Settings(BaseSettings):
     # Redis Cache (Optional fallback to in-memory)
     REDIS_URL: Optional[str] = os.getenv("REDIS_URL", None)
     
-    # Security
+    # Security & CORS
     SECRET_KEY: str = os.getenv("SECRET_KEY", "tradeguard-super-secret-jwt-key-2026-audit-key")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     TRADINGVIEW_WEBHOOK_SECRET: str = os.getenv("TRADINGVIEW_WEBHOOK_SECRET", "tg_tv_sec_893b1657ff1fc53")
+    CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+    
+    # Worker Deployment Mode
+    RUN_EMBEDDED_WORKER: bool = os.getenv("RUN_EMBEDDED_WORKER", "true").lower() in ("true", "1", "yes")
+
+    # Monitoring (Optional)
+    SENTRY_DSN: Optional[str] = os.getenv("SENTRY_DSN", None)
     
     # Stellar Soroban Blockchain
     STELLAR_NETWORK: str = os.getenv("STELLAR_NETWORK", "TESTNET")  # TESTNET / PUBLIC / LOCAL

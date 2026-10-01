@@ -1,0 +1,52 @@
+# Version control
+.git
+.gitignore
+.github
+
+# Environment files and credentials (CRITICAL: never bake secrets into images)
+.env
+.env.*
+*.env
+*.pem
+*.key
+
+# Python artifacts and caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Local databases
+tradeguard.db*
+*.db
+*.sqlite*
+*.db-shm
+*.db-wal
+
+# Node / Frontend
+node_modules/
+.next/
+out/
+
+# IDE and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/

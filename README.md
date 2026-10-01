@@ -456,6 +456,237 @@ Before any paper order is executed, the **TradeGuard Risk Engine** evaluates:
 
 ---
 
+## 🐳 Docker Setup & Production Architecture
+
+TradeGuard AI is fully containerized with a production-grade multi-container architecture separating the user-facing HTTP API, autonomous background workers, and caching engine.
+
+### System Architecture
+
+```
+                    TradeGuard AI
+                         │
+              ┌──────────┴──────────┐
+              │                     │
+         Next.js Frontend       FastAPI Backend
+              │                     │
+            Vercel                Docker
+                                    │
+                         ┌──────────┴──────────┐
+                         │                     │
+                       Redis                Worker
+                    Upstash/Redis          Docker
+                                               │
+                                  ┌────────────┼────────────┐
+                                  │            │            │
+                                 AI          News       Backtesting
+                              Analysis     Processing     Jobs
+```
+
+```
+User
+  │
+  ▼
+Next.js / Vercel
+  │
+  ▼
+FastAPI / Docker  ────────►  Stellar / Soroban  ────────►  Blockchain Audit
+  │
+  ▼
+Redis / Upstash
+  │
+  ▼
+Background Workers / Docker
+  │
+  ▼
+AI + News + Backtesting
+  │
+  ▼
+Supabase PostgreSQL
+```
+
+---
+
+### Managed Production Services
+
+| Component | Technology | Recommended Host | Role |
+| :--- | :--- | :--- | :--- |
+| **Frontend** | Next.js 16 (React 19) | **Vercel** | Responsive web trading terminal & SSR |
+| **Backend API** | FastAPI / Python 3.11 | **Docker** (Fly.io / AWS ECS / Render) | REST API, inference endpoints, webhooks |
+| **Worker** | Python 3.11 Worker | **Docker** (Fly.io / AWS ECS / Render) | Autonomous news ingestion & batch jobs |
+| **Database** | PostgreSQL 16 | **Supabase** | Persistent storage with connection pooling |
+| **Cache** | Redis 7 / TLS | **Upstash** | Low-latency response caching & rate limits |
+| **Audit Ledger** | Soroban Smart Contracts | **Stellar Testnet / Mainnet** | Cryptographic proof of AI trade decisions |
+| **Charts** | TradingView Advanced | **TradingView CDN** | Interactive charts & technical indicators |
+| **Telemetry** | Sentry SDK | **Sentry** | Distributed error tracking & tracing |
+
+---
+
+### 1. Requirements
+
+- **Docker**: Engine version `24.0+` or **Docker Desktop**
+- **Docker Compose**: Version `v2.20+`
+- **RAM**: Minimum 2 GB (4 GB recommended for concurrent AI inference)
+- **Node.js** (Optional for local frontend): `v18.0+`
+
+---
+
+### 2. Environment Configuration
+
+Copy the example configuration file:
+```bash
+cp .env.example .env
+```
+
+Key environment variables to configure:
+```env
+# Database (Supabase PostgreSQL in production, or SQLite volume in local Docker)
+DATABASE_URL="postgresql+asyncpg://postgres:[PASS]@[HOST]:5432/postgres"
+
+# Redis Cache (Upstash Redis in production, or local Docker service)
+REDIS_URL="rediss://default:[TOKEN]@[HOST].upstash.io:6379"
+
+# Security & CORS
+SECRET_KEY="generate-a-secure-random-64-character-jwt-key"
+CORS_ORIGINS="http://localhost:3000,https://tradeguard-ai.vercel.app"
+RUN_EMBEDDED_WORKER=false
+
+# Optional Monitoring
+SENTRY_DSN=""
+```
+
+---
+
+### 3. Docker Commands Reference
+
+#### Build Images
+Build the backend API and worker image from source:
+```bash
+docker compose build
+```
+
+Or build the API image standalone:
+```bash
+docker build -t tradeguard-api backend/
+```
+
+#### Start Services
+Start the full local container stack in the foreground:
+```bash
+docker compose up
+```
+
+Start the stack detached in the background:
+```bash
+docker compose up -d
+```
+
+Start with local PostgreSQL enabled (instead of Supabase or SQLite):
+```bash
+docker compose --profile postgres up -d
+```
+
+#### Rebuild and Restart
+Rebuild images and recreate containers:
+```bash
+docker compose up --build -d
+```
+
+#### Stop Services
+Gracefully stop containers while preserving database and cache volumes:
+```bash
+docker compose down
+```
+
+Stop and purge persistent storage volumes:
+```bash
+docker compose down -v
+```
+
+---
+
+### 4. Viewing Logs
+
+Stream unified logs across all containers:
+```bash
+docker compose logs -f
+```
+
+Stream API server logs only:
+```bash
+docker compose logs -f api
+```
+
+Stream background worker logs only:
+```bash
+docker compose logs -f worker
+```
+
+Stream Redis cache logs:
+```bash
+docker compose logs -f redis
+```
+
+---
+
+### 5. Health Checks & Monitoring
+
+The containerized FastAPI backend provides dual health check endpoints:
+
+1. **Liveness Probe** (`GET /health`):
+   - Fast, non-blocking check used by Docker and Kubernetes orchestrators.
+   - Response: `{"status": "ok", "app": "TradeGuard AI", "version": "1.2.0"}`
+
+2. **Readiness Probe** (`GET /health/ready` or `GET /api/health`):
+   - Deep inspection checking Database connectivity, Redis cache latency, Circuit Breaker status, and worker heartbeats.
+   - Response includes comprehensive component health metrics:
+   ```json
+   {
+     "status": "healthy",
+     "app": "TradeGuard AI",
+     "components": {
+       "database": { "status": "UP", "latency_ms": 7.52 },
+       "cache": { "status": "UP", "backend": "redis", "hit_ratio_pct": 82.5 },
+       "circuit_breakers": { "market_data": { "state": "CLOSED" }, ... },
+       "job_queue": { "active_jobs": 0, "completed_jobs": 14 }
+     }
+   }
+   ```
+
+---
+
+### 6. Autonomous Worker Architecture
+
+When deployed in Docker:
+- **`api` Container**: Sets `RUN_EMBEDDED_WORKER=false` and dedicates all CPU and memory resources to serving incoming HTTP/REST requests, market scanner queries, and real-time inference at sub-10ms response latencies.
+- **`worker` Container**: Runs `backend.app.worker` as an independent daemon. It autonomously pulls financial news from external providers, performs NLP sentiment analysis, refreshes the Daily Market Digest, and records heartbeats in Redis (`worker:heartbeat`).
+- **Resilience**: If the background worker encounters external provider rate limits, its built-in circuit breaker temporarily halts external polling and serves cached news without impacting the API server.
+
+---
+
+### 7. Frontend Connection (Vercel to Docker Backend)
+
+The Next.js frontend is configured to connect to your Dockerized FastAPI backend dynamically:
+- Set `NEXT_PUBLIC_API_URL` in your Vercel project environment settings:
+  ```env
+  NEXT_PUBLIC_API_URL=https://api.your-tradeguard-domain.com
+  BACKEND_INTERNAL_URL=https://api.your-tradeguard-domain.com
+  ```
+- All client-side fetch calls in `frontend/src/lib/api.ts` and Next.js server-side rewrites in `frontend/next.config.ts` will route traffic seamlessly to the Docker API.
+
+---
+
+### 8. Troubleshooting
+
+| Issue | Cause | Solution |
+| :--- | :--- | :--- |
+| **Port 8000 already in use** | A local Python server or previous container is running | Stop the local server or change port mapping in `docker-compose.yml` (`- "8001:8000"`) |
+| **Redis connection refused** | Redis container not healthy or incorrect URL | Ensure `redis` service is up: `docker compose ps`. In Docker Compose, use `redis://redis:6379/0` |
+| **Supabase SSL / dialect error** | Using standard `postgres://` or `postgresql://` | Handled automatically in `backend/app/db/database.py`, which normalizes URLs to `postgresql+asyncpg://` |
+| **Worker reports no news** | News provider API key unconfigured | Set `NEWS_PROVIDER=demo` in `.env` for deterministic mock news data, or provide a valid `ALPHAVANTAGE_API_KEY` |
+
+---
+
 ## License
 
 MIT License. Designed and built for research and paper trading.
+

@@ -54,9 +54,13 @@ app.add_middleware(RateLimitMiddleware)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # 3. CORS configuration for Next.js frontend
+configured_origins = [o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()]
+if settings.ENVIRONMENT == "development" and not any("localhost" in o for o in configured_origins):
+    configured_origins.extend(["http://localhost:3000", "http://127.0.0.1:3000"])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=configured_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -82,6 +86,20 @@ app.include_router(news.router)
 @app.on_event("startup")
 async def on_startup():
     logger.info("Initializing TradeGuard AI infrastructure...")
+
+    # Optional Sentry Monitoring
+    if settings.SENTRY_DSN:
+        try:
+            import sentry_sdk
+            sentry_sdk.init(
+                dsn=settings.SENTRY_DSN,
+                environment=settings.ENVIRONMENT,
+                traces_sample_rate=0.2 if settings.ENVIRONMENT == "production" else 1.0,
+            )
+            logger.info("Sentry monitoring initialized successfully.")
+        except Exception as e:
+            logger.warning(f"Sentry monitoring initialization skipped: {e}")
+
     # Initialize Redis / In-Memory Cache
     await cache_service.initialize()
 
@@ -93,20 +111,40 @@ async def on_startup():
     except Exception as e:
         logger.warning(f"Database schema initialization warning: {e}")
 
-    # Start Decoupled News Ingestion Worker
-    news_ingestion_worker.start()
+    # Start Decoupled News Ingestion Worker if in embedded worker mode
+    if settings.RUN_EMBEDDED_WORKER:
+        news_ingestion_worker.start()
+        logger.info("TradeGuard AI embedded news worker started.")
+    else:
+        logger.info("Embedded worker disabled (RUN_EMBEDDED_WORKER=false). Background worker container will handle scheduled jobs.")
+
     logger.info("TradeGuard AI production services ready.")
 
 @app.on_event("shutdown")
 async def on_shutdown():
     logger.info("Shutting down TradeGuard AI services...")
-    news_ingestion_worker.stop()
+    if settings.RUN_EMBEDDED_WORKER:
+        news_ingestion_worker.stop()
 
 @app.get("/health")
-@app.get("/api/health")
-async def health_check():
+async def liveness_check():
     """
-    Production Deep Health Check probing:
+    Lightweight Liveness Probe for Docker / Kubernetes / ECS orchestrators.
+    Returns immediately to confirm ASGI server process is healthy.
+    """
+    return {
+        "status": "ok",
+        "app": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+        "environment": settings.ENVIRONMENT,
+        "timestamp": time.time()
+    }
+
+@app.get("/health/ready")
+@app.get("/api/health")
+async def readiness_check():
+    """
+    Production Deep Health & Readiness Check probing:
     Database, Redis/Cache, Market Data, News Worker, Stellar RPC, and Circuit Breakers.
     """
     t0 = time.time()
