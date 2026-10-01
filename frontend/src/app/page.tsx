@@ -370,19 +370,20 @@ export default function TradeGuardApp() {
       ======================================================== */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 w-64 border-r border-slate-800 bg-[#0a0f1d] flex flex-col shrink-0
-          transition-transform duration-300 ease-in-out
-          lg:static lg:translate-x-0
-          ${isMobileNavOpen ? "translate-x-0 shadow-2xl shadow-cyan-950/50" : "-translate-x-full"}
+          fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] border-r border-slate-800 bg-[#0a0f1d] flex flex-col shrink-0 overflow-hidden
+          transition-all duration-300 ease-in-out
+          lg:static lg:translate-x-0 lg:w-64 lg:visible lg:pointer-events-auto
+          ${isMobileNavOpen ? "translate-x-0 shadow-2xl shadow-cyan-950/50 visible pointer-events-auto" : "-translate-x-full invisible pointer-events-none"}
         `}
       >
         {/* Brand Header */}
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-          <TradeGuardLogo size="md" />
+        <div className="p-4 border-b border-slate-800 flex items-center justify-between gap-2 overflow-hidden">
+          <TradeGuardLogo size="sm" />
           {/* Close button on mobile */}
           <button
             onClick={() => setIsMobileNavOpen(false)}
-            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
+            aria-label="Close Navigation Menu"
           >
             <X className="w-5 h-5" />
           </button>
@@ -448,11 +449,11 @@ export default function TradeGuardApp() {
           {/* Mobile Hamburger + Search */}
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <button
-              onClick={() => setIsMobileNavOpen(true)}
-              className="lg:hidden p-2 -ml-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white shrink-0"
-              aria-label="Open Navigation Menu"
+              onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
+              className="lg:hidden p-2 -ml-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white shrink-0 relative z-10 transition-colors"
+              aria-label={isMobileNavOpen ? "Close Navigation Menu" : "Open Navigation Menu"}
             >
-              <Menu className="w-5 h-5" />
+              {isMobileNavOpen ? <X className="w-5 h-5 text-cyan-400" /> : <Menu className="w-5 h-5" />}
             </button>
 
 
