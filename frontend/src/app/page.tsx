@@ -34,6 +34,7 @@ import { HowToUseGuide } from "@/components/HowToUseGuide";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FALLBACK_ARTICLES } from "@/lib/fallbackNewsData";
 import { FALLBACK_ALERTS } from "@/lib/fallbackPlatformData";
+import { generateFallbackAnalysis, generateFallbackMarketData } from "@/lib/chartFallback";
 
 // Predefined verified institutional asset coverage
 const POPULAR_ASSETS = [
@@ -43,10 +44,14 @@ const POPULAR_ASSETS = [
   { symbol: "MSFT", name: "Microsoft Corp.", exchange: "NASDAQ", sector: "Technology" },
   { symbol: "GOOGL", name: "Alphabet Inc.", exchange: "NASDAQ", sector: "Communication" },
   { symbol: "AMZN", name: "Amazon.com", exchange: "NASDAQ", sector: "Consumer Cyclical" },
+  { symbol: "META", name: "Meta Platforms", exchange: "NASDAQ", sector: "Technology" },
   { symbol: "BTC-USD", name: "Bitcoin USD", exchange: "Crypto", sector: "Cryptocurrency" },
   { symbol: "ETH-USD", name: "Ethereum USD", exchange: "Crypto", sector: "Cryptocurrency" },
   { symbol: "RELIANCE.NS", name: "Reliance Industries", exchange: "NSE", sector: "Energy" },
   { symbol: "TCS.NS", name: "Tata Consultancy Services", exchange: "NSE", sector: "Technology" },
+  { symbol: "INFY.NS", name: "Infosys Ltd.", exchange: "NSE", sector: "Technology" },
+  { symbol: "SPX", name: "S&P 500 Index", exchange: "INDEX", sector: "Index" },
+  { symbol: "NDX", name: "Nasdaq 100 Index", exchange: "INDEX", sector: "Index" },
 ];
 
 export default function TradeGuardApp() {
@@ -151,16 +156,21 @@ export default function TradeGuardApp() {
   };
 
   const loadAssetAnalysis = async (sym: string) => {
+    const cleanSym = sym.toUpperCase().trim();
     try {
       setLoadingAnalysis(true);
-      const res = await api.analyzeAsset(sym);
+      setCurrentSymbol(cleanSym);
+      const res = await api.analyzeAsset(cleanSym);
       setAnalysisData(res);
-      const md = await api.getMarketData(sym);
+      const md = await api.getMarketData(cleanSym);
       setMarketData(md);
-      setCurrentSymbol(sym);
-      api.getStockNews(sym, 4).then(n => setStockNewsList(n || [])).catch(() => {});
+      api.getStockNews(cleanSym, 4).then(n => setStockNewsList(n || [])).catch(() => {});
     } catch (err) {
-      console.error("Failed to load asset analysis:", err);
+      console.warn("Failed to load asset analysis via API, using high-fidelity fallback:", err);
+      const fbAnalysis = generateFallbackAnalysis(cleanSym);
+      setAnalysisData(fbAnalysis);
+      const fbMarket = generateFallbackMarketData(cleanSym);
+      setMarketData(fbMarket);
     } finally {
       setLoadingAnalysis(false);
     }
@@ -240,16 +250,29 @@ export default function TradeGuardApp() {
 
   const selectAsset = (sym: string) => {
     const cleanSym = sym.toUpperCase().trim();
+    if (!cleanSym) return;
+    setCurrentSymbol(cleanSym);
     setSearchSymbol(cleanSym);
-    loadAssetAnalysis(cleanSym);
+    try {
+      const tvSym = resolveTVSymbol(cleanSym);
+      setChartSymbol(tvSym);
+    } catch {
+      setChartSymbol(`NASDAQ:${cleanSym}`);
+    }
+    // Switch to Dashboard or Analyzer view so the user immediately sees the analysis
+    if (activeTab !== "dashboard" && activeTab !== "analyzer" && activeTab !== "asset_details" && activeTab !== "chart") {
+      setActiveTab("dashboard");
+    }
     setIsSearchDropdownOpen(false);
+    loadAssetAnalysis(cleanSym);
+    loadNewsData(cleanSym);
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSearchDropdownOpen(false);
     if (searchSymbol.trim()) {
-      selectAsset(searchSymbol);
+      selectAsset(searchSymbol.trim());
     }
   };
 
@@ -513,7 +536,7 @@ export default function TradeGuardApp() {
                   <div className="absolute left-0 right-0 top-full mt-1.5 bg-[#0b1329] border border-cyan-500/30 rounded-xl shadow-2xl z-40 max-h-72 overflow-y-auto divide-y divide-slate-800/80 backdrop-blur-md">
                     <div className="p-2 text-[10px] font-bold uppercase tracking-wider text-cyan-400 flex items-center justify-between bg-slate-900/60">
                       <span>Click Any Asset to Analyze</span>
-                      <span className="text-slate-500 font-mono text-[9px]">10 Available</span>
+                      <span className="text-slate-500 font-mono text-[9px]">{POPULAR_ASSETS.length} Available</span>
                     </div>
                     {POPULAR_ASSETS.filter(a => 
                       !searchSymbol || 
@@ -523,8 +546,12 @@ export default function TradeGuardApp() {
                       <button
                         key={asset.symbol}
                         type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          selectAsset(asset.symbol);
+                        }}
                         onClick={() => selectAsset(asset.symbol)}
-                        className={`w-full px-3 py-2 text-left flex items-center justify-between hover:bg-cyan-500/10 transition-colors ${
+                        className={`w-full px-3 py-2 text-left flex items-center justify-between hover:bg-cyan-500/10 cursor-pointer transition-colors ${
                           currentSymbol === asset.symbol ? "bg-cyan-500/20 text-cyan-300 font-bold" : "text-slate-200"
                         }`}
                       >

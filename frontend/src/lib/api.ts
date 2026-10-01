@@ -5,6 +5,7 @@ import {
   filterFallbackArticles,
 } from "./fallbackNewsData";
 import { FALLBACK_ALERTS, FALLBACK_WEBHOOKS } from "./fallbackPlatformData";
+import { generateFallbackAnalysis, generateFallbackMarketData } from "./chartFallback";
 
 const DEFAULT_BACKEND = "http://127.0.0.1:8000";
 const API_BASE =
@@ -145,16 +146,48 @@ export const api = {
   getHealth: () => fetchApi<any>("/api/health", { cacheTtlMs: 5000 }),
 
   // Assets & Market Data
-  searchAssets: (q: string = "") =>
-    fetchApi<any[]>(`/api/assets?q=${encodeURIComponent(q)}`, { cacheTtlMs: 60000 }),
-  getMarketData: (symbol: string, timeframe: string = "1d", period: string = "6mo") =>
-    fetchApi<any>(`/api/market-data/${symbol}?timeframe=${timeframe}&period=${period}`, {
-      cacheTtlMs: 30000,
-    }),
+  searchAssets: async (q: string = "") => {
+    try {
+      return await fetchApi<any[]>(`/api/assets?q=${encodeURIComponent(q)}`, { cacheTtlMs: 60000 });
+    } catch {
+      const popular = [
+        { symbol: "AAPL", name: "Apple Inc.", exchange: "NASDAQ", sector: "Technology", price: 230.51 },
+        { symbol: "NVDA", name: "NVIDIA Corp.", exchange: "NASDAQ", sector: "Semiconductors", price: 128.50 },
+        { symbol: "TSLA", name: "Tesla Inc.", exchange: "NASDAQ", sector: "Automotive", price: 254.10 },
+        { symbol: "MSFT", name: "Microsoft Corp.", exchange: "NASDAQ", sector: "Technology", price: 448.90 },
+        { symbol: "GOOGL", name: "Alphabet Inc.", exchange: "NASDAQ", sector: "Communication", price: 182.15 },
+        { symbol: "AMZN", name: "Amazon.com", exchange: "NASDAQ", sector: "Consumer Cyclical", price: 186.40 },
+        { symbol: "BTC-USD", name: "Bitcoin USD", exchange: "Crypto", sector: "Cryptocurrency", price: 94150.00 },
+        { symbol: "ETH-USD", name: "Ethereum USD", exchange: "Crypto", sector: "Cryptocurrency", price: 2680.00 },
+        { symbol: "RELIANCE.NS", name: "Reliance Industries", exchange: "NSE", sector: "Energy", price: 2980.50 },
+        { symbol: "TCS.NS", name: "Tata Consultancy Services", exchange: "NSE", sector: "Technology", price: 4250.00 },
+        { symbol: "INFY.NS", name: "Infosys", exchange: "NSE", sector: "Technology", price: 1890.00 },
+      ];
+      if (!q) return popular;
+      const lower = q.toLowerCase();
+      return popular.filter(p => p.symbol.toLowerCase().includes(lower) || p.name.toLowerCase().includes(lower));
+    }
+  },
+  getMarketData: async (symbol: string, timeframe: string = "1d", period: string = "6mo") => {
+    try {
+      return await fetchApi<any>(`/api/market-data/${symbol}?timeframe=${timeframe}&period=${period}`, {
+        cacheTtlMs: 30000,
+      });
+    } catch (e) {
+      console.warn(`[MarketData] Falling back to client-side data for ${symbol}:`, e);
+      return generateFallbackMarketData(symbol, timeframe, period);
+    }
+  },
 
   // AI Analysis & Signals
-  analyzeAsset: (symbol: string) =>
-    fetchApi<any>(`/api/analysis/${symbol}`, { cacheTtlMs: 60000 }),
+  analyzeAsset: async (symbol: string) => {
+    try {
+      return await fetchApi<any>(`/api/analysis/${symbol}`, { cacheTtlMs: 60000 });
+    } catch (e) {
+      console.warn(`[AI Analysis] Falling back to client-side analysis for ${symbol}:`, e);
+      return generateFallbackAnalysis(symbol);
+    }
+  },
   generateSignal: (symbol: string) =>
     fetchApi<any>("/api/signals/generate", {
       method: "POST",

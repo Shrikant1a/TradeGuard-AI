@@ -292,8 +292,11 @@ export function TickerTapeWidget({ onSelectSymbol }: TickerTapeWidgetProps) {
         {tickers.map((item, idx) => (
           <div
             key={`ticker-1-${idx}`}
-            onClick={() => onSelectSymbol && onSelectSymbol(item.symbol)}
-            className="flex items-center space-x-2 px-3.5 h-full cursor-pointer hover:bg-slate-800/40 transition-colors group shrink-0 border-r border-slate-800/60"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onSelectSymbol) onSelectSymbol(item.symbol);
+            }}
+            className="flex items-center space-x-2 px-3.5 h-full cursor-pointer hover:bg-slate-800/60 active:scale-[0.98] transition-all group shrink-0 border-r border-slate-800/60"
             title={`Click to analyze ${item.name} (${item.symbol})`}
           >
             <TickerIcon type={item.iconType} />
@@ -322,8 +325,11 @@ export function TickerTapeWidget({ onSelectSymbol }: TickerTapeWidgetProps) {
         {tickers.map((item, idx) => (
           <div
             key={`ticker-2-${idx}`}
-            onClick={() => onSelectSymbol && onSelectSymbol(item.symbol)}
-            className="flex items-center space-x-2 px-3.5 h-full cursor-pointer hover:bg-slate-800/40 transition-colors group shrink-0 border-r border-slate-800/60"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onSelectSymbol) onSelectSymbol(item.symbol);
+            }}
+            className="flex items-center space-x-2 px-3.5 h-full cursor-pointer hover:bg-slate-800/60 active:scale-[0.98] transition-all group shrink-0 border-r border-slate-800/60"
             title={`Click to analyze ${item.name} (${item.symbol})`}
           >
             <TickerIcon type={item.iconType} />

@@ -43,7 +43,19 @@ export default function LiveMarketsPage() {
     <div className="min-h-screen bg-[#0a0a0f] text-white font-sans">
       {/* ── Sticky Live Ticker Tape ── */}
       <div className="sticky top-0 z-50 bg-[#0d0d1a]/95 backdrop-blur border-b border-white/5">
-        <TickerTapeWidget />
+        <TickerTapeWidget onSelectSymbol={(sym) => {
+          const clean = sym.toUpperCase().trim();
+          const match = POPULAR_SYMBOLS.find(s => 
+            s.label.toUpperCase() === clean || 
+            s.tv.toUpperCase().includes(clean)
+          );
+          if (match) {
+            setSelected(match);
+          } else {
+            const tv = clean.endsWith(".NS") ? `BSE:${clean.replace(".NS", "")}` : clean.includes("-USD") ? `BINANCE:${clean.replace("-USD", "USDT")}` : `NASDAQ:${clean}`;
+            setSelected({ label: clean, tv, ta: clean.endsWith(".NS") ? null : tv });
+          }
+        }} />
       </div>
 
       {/* ── Page Header ── */}
