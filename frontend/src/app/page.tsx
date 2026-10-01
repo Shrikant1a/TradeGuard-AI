@@ -592,7 +592,7 @@ export default function TradeGuardApp() {
           {/* ── Live Ticker Strip (always visible unless on live_markets full view) ── */}
           {activeTab !== "live_markets" && (
             <div className="-mx-3 sm:-mx-5 -mt-3 sm:-mt-5 mb-2 bg-[#0a0f1d]/80 border-b border-slate-800/60 overflow-hidden">
-              <TickerTapeWidget />
+              <TickerTapeWidget onSelectSymbol={selectAsset} />
             </div>
           )}
           {/* ========================================================
@@ -1437,7 +1437,7 @@ export default function TradeGuardApp() {
             <div className="space-y-0 -mx-3 sm:-mx-5 -mt-3 sm:-mt-5" style={{ height: "calc(100vh - 56px)" }}>
               {/* Live ticker strip */}
               <div className="sticky top-0 z-10 bg-[#0a0f1d]/95 backdrop-blur border-b border-slate-800/60 px-3">
-                <TickerTapeWidget />
+                <TickerTapeWidget onSelectSymbol={selectAsset} />
               </div>
               {/* Full-screen iframe to the /markets route */}
               <iframe

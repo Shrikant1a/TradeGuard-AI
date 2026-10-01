@@ -202,3 +202,26 @@ div[data-nextjs-dialog-overlay] + div,
   opacity: 0 !important;
   pointer-events: none !important;
 }
+
+/* Continuous Infinite Right-to-Left Ticker Marquee */
+@keyframes continuousTickerMarquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.ticker-marquee-track {
+  display: flex;
+  width: max-content;
+  align-items: center;
+  animation: continuousTickerMarquee 45s linear infinite;
+  will-change: transform;
+}
+
+.ticker-marquee-track:hover {
+  animation-play-state: paused;
+}
+
