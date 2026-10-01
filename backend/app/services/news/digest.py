@@ -2,6 +2,7 @@ import datetime
 from typing import Dict, Any, List
 from backend.app.services.news.factory import NewsProviderFactory
 from backend.app.services.news.cache import news_cache
+from backend.app.services.cache_service import cache_service
 
 class DailyDigestService:
     """
@@ -13,10 +14,10 @@ class DailyDigestService:
     @classmethod
     async def get_or_generate_digest(cls, digest_type: str = "MORNING_BRIEF", force_refresh: bool = False) -> Dict[str, Any]:
         cache_key = f"daily_digest_{datetime.date.today().isoformat()}_{digest_type}"
-        cached = news_cache.get(cache_key)
-
-        if cached and not cached["is_stale"] and not force_refresh:
-            return cached["data"]
+        if not force_refresh:
+            cached_data = await cache_service.get_json(cache_key)
+            if cached_data:
+                return cached_data
 
         provider = NewsProviderFactory.get_provider()
         articles = await provider.get_latest_news(limit=25)
@@ -76,4 +77,5 @@ class DailyDigestService:
 
         # Cache until next day or 12 hours
         news_cache.set(cache_key, digest_data, ttl=43200)
+        await cache_service.set_json(cache_key, digest_data, ttl=43200)
         return digest_data

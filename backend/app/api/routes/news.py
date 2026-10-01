@@ -10,6 +10,8 @@ from backend.app.services.news.economic_calendar import EconomicCalendarService
 from backend.app.services.market_data import MarketDataProvider
 from backend.app.services.ai_engine import AIEngine
 from backend.app.services.paper_trading import paper_trading_service
+from backend.app.services.cache_service import cache_service
+from backend.app.services.news.worker import news_ingestion_worker
 
 router = APIRouter(prefix="/api/news", tags=["Financial News Intelligence"])
 
@@ -61,33 +63,33 @@ async def get_news_feed(
     duplicate article grouping, and source transparency.
     """
     cache_key = f"news_feed_{category}_{symbol}_{sentiment}_{min_impact}_{source}_{search}"
-    cached = news_cache.get(cache_key)
     
-    provider = NewsProviderFactory.get_provider()
-    
-    if cached and not cached["is_stale"]:
-        articles = cached["data"]
-        is_stale = False
-    else:
+    # 1. Try fetching from cached feed or worker's pre-ingested cache
+    articles = None
+    is_stale = False
+
+    if symbol:
+        cached_symbol = await cache_service.get_json(f"news:stock:{symbol.upper()}")
+        if cached_symbol:
+            articles = cached_symbol
+
+    if not articles:
+        cached_latest = await cache_service.get_json("news:latest")
+        if cached_latest:
+            articles = cached_latest
+
+    # 2. If cache is empty, trigger worker to ingest and warm
+    if not articles:
         try:
-            if symbol:
-                articles = await provider.get_stock_news(symbol, limit=50)
-            else:
-                articles = await provider.get_latest_news(limit=50, category=category)
-            news_cache.set(cache_key, articles, ttl=300)
-            is_stale = False
+            await news_ingestion_worker.ingest_cycle()
+            articles = await cache_service.get_json("news:latest") or []
         except Exception:
-            if cached:
-                articles = cached["data"]
-                is_stale = True
-            else:
-                # Fallback to demo provider
-                fallback = NewsProviderFactory.get_provider()
-                articles = await fallback.get_latest_news(limit=50)
-                is_stale = False
+            fallback = NewsProviderFactory.get_provider()
+            articles = await fallback.get_latest_news(limit=50)
+            is_stale = True
 
     # Apply filters
-    filtered = articles
+    filtered = articles or []
     if category and category.upper() != "ALL":
         filtered = [a for a in filtered if a.get("category", "").upper() == category.upper()]
     if sentiment and sentiment.upper() != "ALL":
@@ -127,22 +129,42 @@ async def get_latest_news(
     limit: int = Query(10, ge=1, le=50),
     category: Optional[str] = Query(None)
 ):
-    """Fetch latest real-time financial stories."""
+    """Fetch latest real-time financial stories (cached with zero external delay)."""
+    cached = await cache_service.get_json("news:latest")
+    if cached:
+        res = cached
+        if category and category.upper() != "ALL":
+            res = [a for a in res if a.get("category", "").upper() == category.upper()]
+        return res[:limit]
+
     provider = NewsProviderFactory.get_provider()
     articles = await provider.get_latest_news(limit=limit, category=category)
+    await cache_service.set_json("news:latest", articles, ttl=300)
     return articles
 
 @router.get("/breaking", response_model=List[Dict[str, Any]])
 async def get_breaking_news(limit: int = Query(5, ge=1, le=20)):
     """Fetch urgent market-moving breaking news with systemic transmission warnings."""
+    cached = await cache_service.get_json("news:breaking")
+    if cached:
+        return cached[:limit]
+
     provider = NewsProviderFactory.get_provider()
-    return await provider.get_breaking_news(limit=limit)
+    articles = await provider.get_breaking_news(limit=limit)
+    await cache_service.set_json("news:breaking", articles, ttl=120)
+    return articles
 
 @router.get("/market", response_model=List[Dict[str, Any]])
 async def get_market_news(limit: int = Query(15, ge=1, le=50)):
     """Fetch general macroeconomic, index, and monetary policy news."""
+    cached = await cache_service.get_json("news:market")
+    if cached:
+        return cached[:limit]
+
     provider = NewsProviderFactory.get_provider()
-    return await provider.get_market_news(limit=limit)
+    articles = await provider.get_market_news(limit=limit)
+    await cache_service.set_json("news:market", articles, ttl=300)
+    return articles
 
 @router.get("/stock/{symbol}", response_model=List[Dict[str, Any]])
 async def get_stock_news(
@@ -150,8 +172,15 @@ async def get_stock_news(
     limit: int = Query(10, ge=1, le=30)
 ):
     """Fetch company-specific news and historical coverage for an asset."""
+    sym = symbol.upper().strip()
+    cached = await cache_service.get_json(f"news:stock:{sym}")
+    if cached:
+        return cached[:limit]
+
     provider = NewsProviderFactory.get_provider()
-    return await provider.get_stock_news(symbol, limit=limit)
+    articles = await provider.get_stock_news(sym, limit=limit)
+    await cache_service.set_json(f"news:stock:{sym}", articles, ttl=300)
+    return articles
 
 @router.get("/search", response_model=List[Dict[str, Any]])
 async def search_news(
@@ -159,9 +188,17 @@ async def search_news(
     limit: int = Query(20, ge=1, le=50)
 ):
     """Global search across headlines, bodies, and entity mappings."""
-    provider = NewsProviderFactory.get_provider()
-    articles = await provider.get_latest_news(limit=50)
-    query_lower = q.lower()
+    query_lower = q.lower().strip()
+    cache_key = f"news:search:{query_lower}"
+    cached = await cache_service.get_json(cache_key)
+    if cached:
+        return cached[:limit]
+
+    articles = await cache_service.get_json("news:latest")
+    if not articles:
+        provider = NewsProviderFactory.get_provider()
+        articles = await provider.get_latest_news(limit=50)
+
     matches = [
         a for a in articles
         if query_lower in a.get("title", "").lower()
@@ -169,6 +206,7 @@ async def search_news(
         or any(query_lower in sym.lower() for sym in a.get("symbols", []))
         or any(query_lower in cmp.lower() for cmp in a.get("companies", []))
     ]
+    await cache_service.set_json(cache_key, matches, ttl=180)
     return matches[:limit]
 
 @router.get("/digest/today", response_model=Dict[str, Any])

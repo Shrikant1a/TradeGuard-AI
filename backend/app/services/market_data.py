@@ -1,8 +1,11 @@
+import asyncio
 import datetime
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
 import pandas as pd
 import numpy as np
+from backend.app.services.cache_service import cache_service
+from backend.app.services.circuit_breaker import market_circuit_breaker
 
 class BaseMarketDataProvider(ABC):
     @abstractmethod
@@ -24,58 +27,61 @@ class BaseMarketDataProvider(ABC):
 
 
 class YahooFinanceProvider(BaseMarketDataProvider):
-    """Legitimate Yahoo Finance provider using yfinance with error-resilience"""
+    """Legitimate Yahoo Finance provider using yfinance with thread offloading and error-resilience"""
     
+    def _sync_fetch_history(self, symbol: str, timeframe: str, period: str) -> pd.DataFrame:
+        import yfinance as yf
+        ticker = yf.Ticker(symbol)
+        df = ticker.history(period=period, interval=timeframe)
+        if df.empty or len(df) < 5:
+            raise ValueError(f"No sufficient data for {symbol} on Yahoo Finance")
+        df = df.reset_index()
+        col_map = {
+            "Date": "timestamp",
+            "Datetime": "timestamp",
+            "Open": "open",
+            "High": "high",
+            "Low": "low",
+            "Close": "close",
+            "Volume": "volume"
+        }
+        df = df.rename(columns=col_map)
+        return df[["timestamp", "open", "high", "low", "close", "volume"]]
+
     async def get_historical_bars(
         self, symbol: str, timeframe: str = "1d", period: str = "6mo"
     ) -> pd.DataFrame:
-        import yfinance as yf
         try:
-            ticker = yf.Ticker(symbol)
-            df = ticker.history(period=period, interval=timeframe)
-            if df.empty or len(df) < 5:
-                raise ValueError(f"No sufficient data for {symbol} on Yahoo Finance")
-            df = df.reset_index()
-            # Standardize column names
-            col_map = {
-                "Date": "timestamp",
-                "Datetime": "timestamp",
-                "Open": "open",
-                "High": "high",
-                "Low": "low",
-                "Close": "close",
-                "Volume": "volume"
-            }
-            df = df.rename(columns=col_map)
-            df = df[["timestamp", "open", "high", "low", "close", "volume"]]
-            return df
-        except Exception as e:
-            # Fallback to simulated real-market generator if network or rate-limit blocks
+            return await asyncio.to_thread(self._sync_fetch_history, symbol, timeframe, period)
+        except Exception:
             return self._generate_realistic_series(symbol, days=180)
 
-    async def get_current_quote(self, symbol: str) -> Dict[str, Any]:
+    def _sync_fetch_quote(self, symbol: str) -> Dict[str, Any]:
         import yfinance as yf
+        ticker = yf.Ticker(symbol)
+        fast_info = ticker.fast_info
+        price = float(fast_info.last_price)
+        prev_close = float(fast_info.previous_close or price)
+        change = price - prev_close
+        change_pct = (change / prev_close) * 100 if prev_close else 0.0
+        
+        return {
+            "symbol": symbol.upper(),
+            "price": round(price, 2),
+            "change": round(change, 2),
+            "change_pct": round(change_pct, 2),
+            "volume": int(getattr(fast_info, 'last_volume', 0) or 15000000),
+            "day_high": round(float(getattr(fast_info, 'day_high', price * 1.01)), 2),
+            "day_low": round(float(getattr(fast_info, 'day_low', price * 0.99)), 2),
+            "currency": getattr(fast_info, 'currency', 'USD'),
+            "provider": "YahooFinance",
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "is_live": True
+        }
+
+    async def get_current_quote(self, symbol: str) -> Dict[str, Any]:
         try:
-            ticker = yf.Ticker(symbol)
-            fast_info = ticker.fast_info
-            price = float(fast_info.last_price)
-            prev_close = float(fast_info.previous_close or price)
-            change = price - prev_close
-            change_pct = (change / prev_close) * 100 if prev_close else 0.0
-            
-            return {
-                "symbol": symbol.upper(),
-                "price": round(price, 2),
-                "change": round(change, 2),
-                "change_pct": round(change_pct, 2),
-                "volume": int(getattr(fast_info, 'last_volume', 0) or 15000000),
-                "day_high": round(float(getattr(fast_info, 'day_high', price * 1.01)), 2),
-                "day_low": round(float(getattr(fast_info, 'day_low', price * 0.99)), 2),
-                "currency": getattr(fast_info, 'currency', 'USD'),
-                "provider": "YahooFinance",
-                "timestamp": datetime.datetime.utcnow().isoformat(),
-                "is_live": True
-            }
+            return await asyncio.to_thread(self._sync_fetch_quote, symbol)
         except Exception:
             return self._generate_fallback_quote(symbol)
 
@@ -172,12 +178,11 @@ class YahooFinanceProvider(BaseMarketDataProvider):
 
 
 class MarketDataProvider:
-    """Singleton Factory provider routing to chosen provider with memory cache"""
+    """Singleton Factory provider routing to chosen provider with multi-tier cache and circuit breaker"""
     _instance = None
     
     def __init__(self, provider_type: str = "yahoo"):
         self.provider: BaseMarketDataProvider = YahooFinanceProvider()
-        self._cache: Dict[str, Any] = {}
 
     @classmethod
     def get_instance(cls):
@@ -186,26 +191,59 @@ class MarketDataProvider:
         return cls._instance
 
     async def get_historical_bars(self, symbol: str, timeframe: str = "1d", period: str = "6mo") -> pd.DataFrame:
-        cache_key = f"bars_{symbol}_{timeframe}_{period}"
-        if cache_key in self._cache:
-            cache_time, data = self._cache[cache_key]
-            if (datetime.datetime.utcnow() - cache_time).total_seconds() < 60: # 1 min cache
-                return data.copy()
+        sym = symbol.upper().strip()
+        cache_key = f"market:bars:{sym}:{timeframe}:{period}"
+        cached = await cache_service.get_json(cache_key)
+        if cached:
+            try:
+                df = pd.DataFrame(cached)
+                if not df.empty and "timestamp" in df.columns:
+                    df["timestamp"] = pd.to_datetime(df["timestamp"])
+                    return df
+            except Exception:
+                pass
+
+        async def fetch_bars():
+            return await self.provider.get_historical_bars(sym, timeframe, period)
+
+        def fallback_bars():
+            return self.provider._generate_realistic_series(sym, days=180)
+
+        df = await market_circuit_breaker.call(fetch_bars, fallback=fallback_bars)
         
-        data = await self.provider.get_historical_bars(symbol, timeframe, period)
-        self._cache[cache_key] = (datetime.datetime.utcnow(), data)
-        return data
+        # Cache records for 300 seconds (5 mins)
+        if isinstance(df, pd.DataFrame) and not df.empty:
+            records = df.copy()
+            if "timestamp" in records.columns:
+                records["timestamp"] = records["timestamp"].astype(str)
+            await cache_service.set_json(cache_key, records.to_dict(orient="records"), ttl=300)
+        return df
 
     async def get_current_quote(self, symbol: str) -> Dict[str, Any]:
-        cache_key = f"quote_{symbol}"
-        if cache_key in self._cache:
-            cache_time, data = self._cache[cache_key]
-            if (datetime.datetime.utcnow() - cache_time).total_seconds() < 10: # 10 sec cache
-                return data
-                
-        data = await self.provider.get_current_quote(symbol)
-        self._cache[cache_key] = (datetime.datetime.utcnow(), data)
-        return data
+        sym = symbol.upper().strip()
+        cache_key = f"market:quote:{sym}"
+        cached = await cache_service.get_json(cache_key)
+        if cached:
+            return cached
+
+        async def fetch_quote():
+            return await self.provider.get_current_quote(sym)
+
+        def fallback_quote():
+            return self.provider._generate_fallback_quote(sym)
+
+        quote = await market_circuit_breaker.call(fetch_quote, fallback=fallback_quote)
+        if quote:
+            # Quotes cache for 30 seconds
+            await cache_service.set_json(cache_key, quote, ttl=30)
+        return quote
 
     async def search_assets(self, query: str) -> List[Dict[str, Any]]:
-        return await self.provider.search_assets(query)
+        q = (query or "").upper().strip()
+        cache_key = f"market:search:{q}"
+        cached = await cache_service.get_json(cache_key)
+        if cached:
+            return cached
+        results = await self.provider.search_assets(query)
+        await cache_service.set_json(cache_key, results, ttl=3600)
+        return results

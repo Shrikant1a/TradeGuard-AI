@@ -6,8 +6,10 @@
     "frontend"
   ],
   "scripts": {
-    "dev": "npm --prefix frontend run dev",
-    "backend": "backend\\venv\\Scripts\\python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload",
+    "dev": "node scripts/dev.js",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "node scripts/dev.js --backend-only",
+    "backend": "node scripts/dev.js --backend-only",
     "build": "npm --prefix frontend run build",
     "start": "npm --prefix frontend run start",
     "lint": "npm --prefix frontend run lint"

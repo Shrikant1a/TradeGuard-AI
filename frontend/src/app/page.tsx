@@ -31,6 +31,7 @@ import { NewsDetailModal } from "@/components/news/NewsDetailModal";
 import { TradeGuardLogo, TradeGuardIcon } from "@/components/TradeGuardLogo";
 import { SplashIntroScreen } from "@/components/SplashIntroScreen";
 import { HowToUseGuide } from "@/components/HowToUseGuide";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Predefined verified institutional asset coverage
 const POPULAR_ASSETS = [
@@ -109,16 +110,27 @@ export default function TradeGuardApp() {
   }, []);
 
   const loadAllInitialData = async () => {
-    loadAssetAnalysis(currentSymbol);
-    loadPortfolio();
-    loadSignals();
-    loadScanner();
-    loadRiskPolicy();
-    loadAlerts();
-    loadBlockchainRecords();
-    loadStrategies();
-    loadWebhookLogs();
-    loadNewsData(currentSymbol);
+    // Priority 1: Interactive Core (active asset, portfolio balance, signals)
+    await Promise.allSettled([
+      loadAssetAnalysis(currentSymbol),
+      loadPortfolio(),
+      loadSignals(),
+    ]);
+
+    // Priority 2: Staggered secondary widgets (100ms)
+    setTimeout(() => {
+      loadScanner();
+      loadRiskPolicy();
+      loadNewsData(currentSymbol);
+    }, 100);
+
+    // Priority 3: Lazily loaded auxiliary audit & history tabs (350ms)
+    setTimeout(() => {
+      loadAlerts();
+      loadBlockchainRecords();
+      loadStrategies();
+      loadWebhookLogs();
+    }, 350);
   };
 
   const loadNewsData = async (sym: string = "AAPL") => {
@@ -861,13 +873,15 @@ export default function TradeGuardApp() {
               VIEW: FINANCIAL NEWS INTELLIGENCE DASHBOARD
           ======================================================== */}
           {activeTab === "news" && (
-            <NewsDashboard
-              onSelectSymbol={(sym) => {
-                setCurrentSymbol(sym);
-                loadAssetAnalysis(sym);
-                setActiveTab("analyzer");
-              }}
-            />
+            <ErrorBoundary fallbackTitle="News Dashboard Temporarily Unavailable" fallbackMessage="Financial news feed encountered an isolated issue. Market data and trading features remain available.">
+              <NewsDashboard
+                onSelectSymbol={(sym) => {
+                  setCurrentSymbol(sym);
+                  loadAssetAnalysis(sym);
+                  setActiveTab("analyzer");
+                }}
+              />
+            </ErrorBoundary>
           )}
 
           {/* ========================================================
@@ -1409,7 +1423,9 @@ export default function TradeGuardApp() {
 
               {/* ── The Chart ── */}
               <div className="w-full">
-                <LightweightChartWidget symbol={chartSymbol} height={530} />
+                <ErrorBoundary fallbackTitle="Chart Temporarily Unavailable" fallbackMessage="Technical chart canvas encountered an isolated rendering issue. Try selecting another asset or refresh.">
+                  <LightweightChartWidget symbol={chartSymbol} height={530} />
+                </ErrorBoundary>
               </div>
             </div>
           )}

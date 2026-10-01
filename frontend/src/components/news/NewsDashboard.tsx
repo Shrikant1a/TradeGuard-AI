@@ -26,6 +26,7 @@ export function NewsDashboard({ onSelectSymbol }: NewsDashboardProps) {
   const [sentiment, setSentiment] = useState("ALL");
   const [minImpact, setMinImpact] = useState<number | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [autoRefreshSec, setAutoRefreshSec] = useState<number>(300); // 5 min default
 
   // Watchlist feed
@@ -38,6 +39,14 @@ export function NewsDashboard({ onSelectSymbol }: NewsDashboardProps) {
   const [generatingDigest, setGeneratingDigest] = useState(false);
   const [showAlertsModal, setShowAlertsModal] = useState(false);
 
+  // Debounce search query by 350ms
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+    }, 350);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   // Load feed
   const fetchNews = useCallback(async () => {
     setLoading(true);
@@ -47,7 +56,7 @@ export function NewsDashboard({ onSelectSymbol }: NewsDashboardProps) {
           category: category !== "ALL" ? category : undefined,
           sentiment: sentiment !== "ALL" ? sentiment : undefined,
           min_impact: minImpact,
-          search: searchQuery || undefined,
+          search: debouncedSearch || undefined,
           limit: 30
         }),
         api.getBreakingNews(4)
@@ -61,7 +70,7 @@ export function NewsDashboard({ onSelectSymbol }: NewsDashboardProps) {
     } finally {
       setLoading(false);
     }
-  }, [category, sentiment, minImpact, searchQuery]);
+  }, [category, sentiment, minImpact, debouncedSearch]);
 
   // Load watchlist news
   const fetchWatchlistNews = useCallback(async () => {
@@ -84,13 +93,27 @@ export function NewsDashboard({ onSelectSymbol }: NewsDashboardProps) {
     }
   }, [activeTab, fetchWatchlistNews]);
 
-  // Auto-refresh interval
+  // Auto-refresh interval with tab visibility awareness
   useEffect(() => {
     if (autoRefreshSec <= 0) return;
     const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return; // Pause background polling when tab is not active
+      }
       fetchNews();
     }, autoRefreshSec * 1000);
-    return () => clearInterval(interval);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchNews(); // Immediate refresh on refocusing tab
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [autoRefreshSec, fetchNews]);
 
   // Daily digest modal trigger

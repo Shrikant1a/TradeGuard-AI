@@ -40,6 +40,9 @@ class TradingViewWebhookPayload(BaseModel):
     signal: str # BUY, SELL, RISK_ALERT
     source: Optional[str] = "tradingview"
 
+import secrets
+from backend.app.services.cache_service import cache_service
+
 @router.post("/tradingview")
 async def receive_tradingview_webhook(
     payload: TradingViewWebhookPayload,
@@ -47,26 +50,53 @@ async def receive_tradingview_webhook(
     x_tradingview_secret: Optional[str] = Header(None)
 ):
     """
-    Ingests TradingView alert webhook payload, verifies secret header if supplied,
-    stores alert in audit center, and records cryptographic verification hash.
+    Ingests TradingView alert webhook payload with constant-time secret validation,
+    request sanitation, duplicate detection, and cryptographic audit recording.
     """
-    # Verify optional webhook secret if configured
-    if x_tradingview_secret and x_tradingview_secret != settings.TRADINGVIEW_WEBHOOK_SECRET:
-        raise HTTPException(status_code=401, detail="Invalid TradingView webhook secret")
+    # 1. Constant-time secret validation
+    expected_secret = getattr(settings, "TRADINGVIEW_WEBHOOK_SECRET", None)
+    if expected_secret:
+        provided = x_tradingview_secret or ""
+        # Also check payload if secret was embedded in JSON body
+        if not provided and isinstance(payload.dict().get("secret"), str):
+            provided = payload.dict()["secret"]
+            
+        if not provided or not secrets.compare_digest(provided, expected_secret):
+            raise HTTPException(status_code=401, detail="Unauthorized: Invalid TradingView webhook secret")
 
+    # 2. Input validation
     sym = payload.symbol.upper().strip()
-    price = payload.price or 100.0
+    if not sym or len(sym) > 20:
+        raise HTTPException(status_code=400, detail="Invalid asset symbol")
+
+    valid_signals = ("BUY", "SELL", "HOLD", "RISK_ALERT", "EXIT")
+    sig = payload.signal.upper().strip()
+    if sig not in valid_signals:
+        raise HTTPException(status_code=400, detail=f"Invalid signal type. Expected one of {valid_signals}")
+
+    price = float(payload.price or 100.0)
     now_str = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Generate cryptographic hash of webhook payload
+    # 3. Duplicate Detection / Idempotency Window (60 seconds)
+    dedup_signature = stellar_service.generate_sha256(f"{sym}:{sig}:{round(price, 2)}:{int(time.time() // 60)}")
+    dedup_key = f"webhook:dedup:{dedup_signature}"
+    if await cache_service.get(dedup_key):
+        return {
+            "status": "DUPLICATE_IGNORED",
+            "message": f"Duplicate webhook for {sym} ({sig}) ignored within 60s idempotency window",
+            "symbol": sym
+        }
+    await cache_service.set(dedup_key, "1", ttl=60)
+
+    # 4. Generate cryptographic hash of webhook payload
     raw_dict = payload.dict()
     payload_hash = stellar_service.generate_sha256(raw_dict)
 
-    # Record verification on Stellar audit ledger
+    # 5. Record verification on Stellar audit ledger
     tx_rec = await stellar_service.record_signal_on_chain(
-        signal_code=f"TV-{abs(hash(sym + payload.signal + now_str)) % 9000 + 1000}",
+        signal_code=f"TV-{abs(hash(sym + sig + now_str)) % 9000 + 1000}",
         asset_symbol=sym,
-        signal_type=payload.signal.upper(),
+        signal_type=sig,
         model_version="TradingView-PineScript-v5",
         strategy_hash=stellar_service.generate_sha256("PineScript-MultiFactor"),
         signal_hash=payload_hash,
@@ -76,7 +106,7 @@ async def receive_tradingview_webhook(
     event_record = {
         "id": len(WEBHOOK_EVENTS_LOG) + 1,
         "symbol": sym,
-        "signal": payload.signal.upper(),
+        "signal": sig,
         "price": price,
         "volume": payload.volume or 1000000.0,
         "source": payload.source or "tradingview",
@@ -88,6 +118,8 @@ async def receive_tradingview_webhook(
     }
 
     WEBHOOK_EVENTS_LOG.insert(0, event_record)
+    if len(WEBHOOK_EVENTS_LOG) > 100:
+        WEBHOOK_EVENTS_LOG.pop()
 
     return {
         "status": "SUCCESS",

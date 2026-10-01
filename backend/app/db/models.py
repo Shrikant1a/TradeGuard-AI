@@ -1,7 +1,7 @@
 import datetime
 from sqlalchemy import (
     Column, Integer, String, Float, Boolean, DateTime, ForeignKey, 
-    Text, JSON
+    Text, JSON, Index
 )
 from sqlalchemy.orm import relationship
 from backend.app.db.database import Base
@@ -138,6 +138,11 @@ class Signal(Base):
     blockchain_verified = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
+    __table_args__ = (
+        Index("ix_signals_symbol_created", "symbol", "created_at"),
+        Index("ix_signals_type_created", "signal_type", "created_at"),
+    )
+
     asset = relationship("Asset", back_populates="signals")
     model_version = relationship("ModelVersion", back_populates="signals")
     explanation = relationship("SignalExplanation", back_populates="signal", uselist=False, cascade="all, delete-orphan")
@@ -243,6 +248,11 @@ class Position(Base):
     opened_at = Column(DateTime, default=datetime.datetime.utcnow)
     closed_at = Column(DateTime, nullable=True)
 
+    __table_args__ = (
+        Index("ix_positions_portfolio_open", "portfolio_id", "is_open"),
+        Index("ix_positions_symbol_open", "symbol", "is_open"),
+    )
+
     portfolio = relationship("Portfolio", back_populates="positions")
     asset = relationship("Asset", back_populates="positions")
 
@@ -270,6 +280,12 @@ class PaperTrade(Base):
     rejection_reason = Column(Text, nullable=True)
     blockchain_hash = Column(String(64), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_paper_trades_user_created", "user_id", "created_at"),
+        Index("ix_paper_trades_status", "status"),
+        Index("ix_paper_trades_portfolio_created", "portfolio_id", "created_at"),
+    )
 
     user = relationship("User", back_populates="paper_trades")
     portfolio = relationship("Portfolio", back_populates="paper_trades")
@@ -305,6 +321,10 @@ class Alert(Base):
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
+    __table_args__ = (
+        Index("ix_alerts_user_read", "user_id", "is_read"),
+    )
+
     user = relationship("User", back_populates="alerts")
 
 class WebhookEvent(Base):
@@ -320,6 +340,10 @@ class WebhookEvent(Base):
     ip_address = Column(String(50), nullable=True)
     is_processed = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_webhook_events_symbol_created", "symbol", "created_at"),
+    )
 
 class BlockchainRecord(Base):
     __tablename__ = "blockchain_records"
@@ -343,6 +367,10 @@ class BlockchainRecord(Base):
     verification_status = Column(String(20), default="VERIFIED") # VERIFIED, PENDING, FAILED
     verified_at = Column(DateTime, default=datetime.datetime.utcnow)
 
+    __table_args__ = (
+        Index("ix_blockchain_records_status_verified", "verification_status", "verified_at"),
+    )
+
     signal = relationship("Signal", back_populates="blockchain_record")
 
 class AuditLog(Base):
@@ -354,6 +382,11 @@ class AuditLog(Base):
     details = Column(JSON, nullable=False)
     ip_address = Column(String(50), default="127.0.0.1")
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_audit_logs_user_ts", "user_id", "timestamp"),
+        Index("ix_audit_logs_action_ts", "action", "timestamp"),
+    )
 
     user = relationship("User", back_populates="audit_logs")
 
@@ -412,6 +445,13 @@ class NewsArticle(Base):
     is_demo = Column(Boolean, default=False)
     duplicate_sources = Column(JSON, default=list)     # List of [{source, url, published_at}]
     blockchain_tx_hash = Column(String(128), nullable=True)
+
+    __table_args__ = (
+        Index("ix_news_articles_cat_pub", "category", "published_at"),
+        Index("ix_news_articles_pub_impact", "published_at", "impact_score"),
+        Index("ix_news_articles_provider_article", "provider", "provider_article_id"),
+        Index("ix_news_articles_breaking", "is_breaking", "published_at"),
+    )
 
 
 class NewsSource(Base):
