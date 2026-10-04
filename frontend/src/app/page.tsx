@@ -1479,15 +1479,11 @@ export default function TradeGuardApp() {
           ======================================================== */}
           {activeTab === "live_markets" && (
             <div className="space-y-0 -mx-3 sm:-mx-5 -mt-3 sm:-mt-5" style={{ height: "calc(100vh - 56px)" }}>
-              {/* Live ticker strip */}
-              <div className="sticky top-0 z-10 bg-[#0a0f1d]/95 backdrop-blur border-b border-slate-800/60 px-3">
-                <TickerTapeWidget onSelectSymbol={selectAsset} />
-              </div>
-              {/* Full-screen iframe to the /markets route */}
+              {/* Full-screen iframe to the /markets route (contains its own integrated sticky ticker tape) */}
               <iframe
                 src="/markets"
                 className="w-full border-0"
-                style={{ height: "calc(100vh - 56px - 46px)" }}
+                style={{ height: "calc(100vh - 56px)" }}
                 title="Live Markets — TradingView Powered"
                 allow="fullscreen"
               />
