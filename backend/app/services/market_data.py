@@ -86,7 +86,9 @@ class YahooFinanceProvider(BaseMarketDataProvider):
             return self._generate_fallback_quote(symbol)
 
     async def search_assets(self, query: str) -> List[Dict[str, Any]]:
-        default_assets = [
+        from backend.app.services.indian_market_data import INDIAN_STOCKS_CATALOG
+
+        global_assets = [
             {"symbol": "AAPL", "name": "Apple Inc.", "exchange": "NASDAQ", "sector": "Technology", "price": 224.23},
             {"symbol": "NVDA", "name": "NVIDIA Corporation", "exchange": "NASDAQ", "sector": "Semiconductors", "price": 128.50},
             {"symbol": "MSFT", "name": "Microsoft Corp.", "exchange": "NASDAQ", "sector": "Technology", "price": 448.90},
@@ -95,23 +97,36 @@ class YahooFinanceProvider(BaseMarketDataProvider):
             {"symbol": "AMZN", "name": "Amazon.com Inc.", "exchange": "NASDAQ", "sector": "Consumer Cyclical", "price": 186.40},
             {"symbol": "BTC-USD", "name": "Bitcoin USD", "exchange": "Crypto", "sector": "Cryptocurrency", "price": 63450.00},
             {"symbol": "ETH-USD", "name": "Ethereum USD", "exchange": "Crypto", "sector": "Cryptocurrency", "price": 2650.00},
-            {"symbol": "RELIANCE.NS", "name": "Reliance Industries", "exchange": "NSE", "sector": "Energy", "price": 2980.50},
-            {"symbol": "TCS.NS", "name": "Tata Consultancy Services", "exchange": "NSE", "sector": "Technology", "price": 4250.00},
         ]
+        
+        # Combine global assets with NSE & BSE catalog
+        indian_assets = [
+            {
+                "symbol": s["symbol"],
+                "name": s["name"],
+                "exchange": s["exchange"],
+                "sector": s["sector"],
+                "price": 1500.00
+            }
+            for s in INDIAN_STOCKS_CATALOG
+        ]
+        all_assets = global_assets + indian_assets
+
         q = query.upper().strip()
         if not q:
-            return default_assets
-        matches = [a for a in default_assets if q in a["symbol"] or q in a["name"].upper()]
+            return all_assets[:15]
+            
+        matches = [a for a in all_assets if q in a["symbol"] or q in a["name"].upper() or q == a["exchange"].upper()]
         if not matches:
             # Dynamically allow searching any user symbol
             matches.append({
                 "symbol": q,
                 "name": f"{q} Global Asset",
-                "exchange": "GLOBAL",
+                "exchange": "BSE" if q.endswith(".BO") else ("NSE" if q.endswith(".NS") else "GLOBAL"),
                 "sector": "Market Equities",
                 "price": 150.00
             })
-        return matches
+        return matches[:25]
 
     def _generate_realistic_series(self, symbol: str, days: int = 180) -> pd.DataFrame:
         """Deterministic Geometric Brownian Motion based on symbol hash for fallback/offline"""

@@ -30,7 +30,8 @@ from backend.app.api.routes import (
     alerts,
     copilot,
     scanner,
-    news
+    news,
+    bot_training
 )
 
 logging.basicConfig(
@@ -82,6 +83,7 @@ app.include_router(alerts.router)
 app.include_router(copilot.router)
 app.include_router(scanner.router)
 app.include_router(news.router)
+app.include_router(bot_training.router)
 
 @app.on_event("startup")
 async def on_startup():

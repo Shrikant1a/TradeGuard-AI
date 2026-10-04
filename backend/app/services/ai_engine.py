@@ -151,7 +151,22 @@ class AIEngine:
         current_price = float(latest_metrics["close"])
         atr = float(latest_metrics["atr"])
 
-        if len(X) >= 40:
+        # Check if globally trained NSE/BSE Bot model is available
+        trained_pred = None
+        try:
+            from backend.app.services.bot_trainer import bot_trainer
+            trained_pred = bot_trainer.predict(df)
+        except Exception:
+            pass
+
+        if trained_pred is not None:
+            probs = trained_pred["probabilities"]
+            p_bull_pct = probs["bullish"]
+            p_neut_pct = probs["neutral"]
+            p_bear_pct = probs["bearish"]
+            active_model_name = trained_pred["model_name"]
+            active_model_version = trained_pred["model_version"]
+        elif len(X) >= 40:
             clf = GradientBoostingClassifier(n_estimators=50, max_depth=3, random_state=42)
             clf.fit(X, y)
             probs = clf.predict_proba(current_x)[0]
@@ -161,6 +176,13 @@ class AIEngine:
             p_bear = float(probs[classes.index(-1)]) if -1 in classes else 0.2
             p_neut = float(probs[classes.index(0)]) if 0 in classes else 0.3
             p_bull = float(probs[classes.index(1)]) if 1 in classes else 0.5
+
+            total_p = p_bull + p_neut + p_bear
+            p_bull_pct = round((p_bull / total_p) * 100, 1)
+            p_neut_pct = round((p_neut / total_p) * 100, 1)
+            p_bear_pct = round((p_bear / total_p) * 100, 1)
+            active_model_name = "GradientBoosting (Local)"
+            active_model_version = self.VERSION
         else:
             # Deterministic multi-factor prior based on technical indicators
             rsi = latest_metrics["rsi"]
@@ -174,11 +196,12 @@ class AIEngine:
             else:
                 p_bull, p_neut, p_bear = 0.32, 0.44, 0.24
 
-        # Normalize probabilities to sum to 100%
-        total_p = p_bull + p_neut + p_bear
-        p_bull_pct = round((p_bull / total_p) * 100, 1)
-        p_neut_pct = round((p_neut / total_p) * 100, 1)
-        p_bear_pct = round((p_bear / total_p) * 100, 1)
+            total_p = p_bull + p_neut + p_bear
+            p_bull_pct = round((p_bull / total_p) * 100, 1)
+            p_neut_pct = round((p_neut / total_p) * 100, 1)
+            p_bear_pct = round((p_bear / total_p) * 100, 1)
+            active_model_name = "MultiFactorPrior"
+            active_model_version = self.VERSION
 
         # Signal Type Decision
         if p_bull_pct >= 55.0 and p_bull_pct > p_bear_pct * 1.5:
@@ -240,7 +263,7 @@ class AIEngine:
             "risk_score": risk_score,
             "stop_loss": stop_loss,
             "take_profit": take_profit,
-            "model_version": self.VERSION,
+            "model_version": active_model_version,
             "strategy_hash": self.STRATEGY_HASH
         }
         signal_hash = hashlib.sha256(json.dumps(signal_payload, sort_keys=True).encode()).hexdigest()
@@ -262,7 +285,8 @@ class AIEngine:
             "take_profit": take_profit,
             "risk_reward_ratio": round(target_mult / stop_mult, 2),
             "suggested_position_units": suggested_units,
-            "model_version": self.VERSION,
+            "model_name": active_model_name,
+            "model_version": active_model_version,
             "strategy_hash": self.STRATEGY_HASH,
             "signal_hash": signal_hash,
             "latest_metrics": latest_metrics,

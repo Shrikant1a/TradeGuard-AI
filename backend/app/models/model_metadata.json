@@ -1,0 +1,103 @@
+{
+  "model_version": "TradeGuard-Bot-v2.0-NSE-BSE",
+  "trained_at": "2026-10-04T13:07:59.652641",
+  "selected_model": "GradientBoosting",
+  "features_count": 14,
+  "features": [
+    "return_1d",
+    "return_5d",
+    "volatility_20",
+    "vol_ratio",
+    "rsi",
+    "macd",
+    "macd_signal",
+    "macd_diff",
+    "dist_sma20",
+    "dist_sma50",
+    "dist_sma200",
+    "bb_pos",
+    "atr_pct",
+    "roc_10"
+  ],
+  "sample_counts": {
+    "total": 23737,
+    "train": 16615,
+    "validation": 3561,
+    "test": 3561
+  },
+  "validation_metrics": {
+    "accuracy": 0.3243,
+    "precision": 0.3272,
+    "recall": 0.3243,
+    "f1": 0.3087
+  },
+  "holdout_test_metrics": {
+    "accuracy": 0.3993,
+    "precision": 0.3697,
+    "recall": 0.3993,
+    "f1": 0.3502,
+    "confusion_matrix": [
+      [
+        101,
+        779,
+        297
+      ],
+      [
+        109,
+        1106,
+        358
+      ],
+      [
+        98,
+        498,
+        215
+      ]
+    ]
+  },
+  "top_features": [
+    [
+      "dist_sma200",
+      0.128
+    ],
+    [
+      "atr_pct",
+      0.1171
+    ],
+    [
+      "macd_signal",
+      0.1077
+    ],
+    [
+      "volatility_20",
+      0.0881
+    ],
+    [
+      "dist_sma50",
+      0.0845
+    ],
+    [
+      "macd_diff",
+      0.083
+    ]
+  ],
+  "comparison": {
+    "GradientBoosting": {
+      "accuracy": 0.3243,
+      "precision": 0.3272,
+      "recall": 0.3243,
+      "f1": 0.3087
+    },
+    "RandomForest": {
+      "accuracy": 0.3187,
+      "precision": 0.3227,
+      "recall": 0.3187,
+      "f1": 0.2793
+    },
+    "LogisticRegression": {
+      "accuracy": 0.3207,
+      "precision": 0.3065,
+      "recall": 0.3207,
+      "f1": 0.2823
+    }
+  }
+}

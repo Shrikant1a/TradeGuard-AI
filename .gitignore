@@ -42,6 +42,10 @@ htmlcov/
 target/
 **/target/
 
+# Ephemeral market data cache
+backend/app/data/market_cache/*.csv
+backend/app/data/market_cache/*.parquet
+
 # Database files
 *.db
 *.sqlite
