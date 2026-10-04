@@ -42,7 +42,7 @@ export default function LiveMarketsPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white font-sans">
       {/* ── Sticky Live Ticker Tape ── */}
-      <div className="sticky top-0 z-50 bg-[#0d0d1a]/95 backdrop-blur border-b border-white/5">
+      <div className="sticky top-0 z-50 bg-[#070c18] border-b border-slate-800/80">
         <TickerTapeWidget onSelectSymbol={(sym) => {
           const clean = sym.toUpperCase().trim();
           const match = POPULAR_SYMBOLS.find(s => 

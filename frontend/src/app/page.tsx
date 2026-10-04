@@ -630,7 +630,7 @@ export default function TradeGuardApp() {
         </header>
 
         {/* SCROLLABLE MAIN VIEWPORT */}
-        <main className={`flex-1 overflow-y-auto space-y-5 ${activeTab === "live_markets" ? "p-0" : "p-3 sm:p-5"}`}>
+        <main className={`flex-1 overflow-y-auto ${activeTab === "live_markets" ? "p-0 space-y-0 overflow-hidden" : "p-3 sm:p-5 space-y-5"}`}>
           {/* ── Live Ticker Strip (always visible unless on live_markets full view) ── */}
           {activeTab !== "live_markets" && (
             <div className="-mx-3 sm:-mx-5 -mt-3 sm:-mt-5 mb-2 bg-[#0a0f1d]/80 border-b border-slate-800/60 overflow-hidden">
@@ -1478,12 +1478,11 @@ export default function TradeGuardApp() {
               VIEW 5b: LIVE MARKETS (TradingView All Widgets)
           ======================================================== */}
           {activeTab === "live_markets" && (
-            <div className="space-y-0 -mx-3 sm:-mx-5 -mt-3 sm:-mt-5" style={{ height: "calc(100vh - 56px)" }}>
+            <div className="w-full h-full m-0 p-0 overflow-hidden" style={{ height: "calc(100vh - 56px)" }}>
               {/* Full-screen iframe to the /markets route (contains its own integrated sticky ticker tape) */}
               <iframe
                 src="/markets"
-                className="w-full border-0"
-                style={{ height: "calc(100vh - 56px)" }}
+                className="w-full h-full border-0 block"
                 title="Live Markets — TradingView Powered"
                 allow="fullscreen"
               />

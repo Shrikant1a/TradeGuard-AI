@@ -278,7 +278,7 @@ export function TickerTapeWidget({ onSelectSymbol }: TickerTapeWidgetProps) {
   return (
     <div
       className="relative w-full overflow-hidden bg-[#070c18] border-b border-slate-800/80 select-none z-10"
-      style={{ height: "40px" }}
+      style={{ height: "42px" }}
     >
       {/* Left subtle fade gradient mask */}
       <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#070c18] to-transparent z-10 pointer-events-none" />
