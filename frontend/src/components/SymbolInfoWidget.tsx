@@ -1,6 +1,8 @@
 "use client";
 import React, { useEffect, useRef } from "react";
 
+import { resolveClientTradingViewSymbol } from "@/lib/marketRegistry";
+
 /**
  * TradingView Symbol Info Widget
  * Shows live price, volume, 52-week range for a specific symbol.
@@ -9,19 +11,21 @@ interface SymbolInfoWidgetProps {
   symbol?: string;
 }
 
-export function SymbolInfoWidget({ symbol = "NASDAQ:AAPL" }: SymbolInfoWidgetProps) {
+export function SymbolInfoWidget({ symbol = "NSE:RELIANCE" }: SymbolInfoWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
     containerRef.current.innerHTML = "";
 
+    const resolvedSymbol = resolveClientTradingViewSymbol(symbol);
+
     const script = document.createElement("script");
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-symbol-info.js";
     script.type = "text/javascript";
     script.async = true;
     script.innerHTML = JSON.stringify({
-      symbol,
+      symbol: resolvedSymbol,
       width: "100%",
       locale: "en",
       colorTheme: "dark",

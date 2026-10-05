@@ -8,6 +8,16 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
     
+    # Primary Market Configuration (India First)
+    PRIMARY_MARKET: str = os.getenv("PRIMARY_MARKET", "India")
+    PRIMARY_EXCHANGES: str = os.getenv("PRIMARY_EXCHANGES", "NSE,BSE")
+    PRIMARY_CURRENCY: str = os.getenv("PRIMARY_CURRENCY", "INR")
+    CURRENCY_SYMBOL: str = os.getenv("CURRENCY_SYMBOL", "₹")
+    DEFAULT_LOCALE: str = os.getenv("DEFAULT_LOCALE", "en-IN")
+    DEFAULT_TIMEZONE: str = os.getenv("DEFAULT_TIMEZONE", "Asia/Kolkata")
+    DEFAULT_SYMBOL: str = os.getenv("DEFAULT_SYMBOL", "RELIANCE")
+    DEFAULT_EXCHANGE: str = os.getenv("DEFAULT_EXCHANGE", "NSE")
+    
     # Database (PostgreSQL with SQLite fallback)
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL", 

@@ -32,39 +32,64 @@ class PaperTradingService:
         self._seed_initial_positions()
 
     def _seed_initial_positions(self):
-        """Seed initial active positions (AAPL, NVDA) as transparent reference baseline"""
+        """Seed initial active positions (RELIANCE, TCS, INFY) on NSE as Indian reference baseline"""
         now = datetime.datetime.utcnow()
-        self.positions["AAPL"] = {
-            "symbol": "AAPL",
+        self.positions["RELIANCE"] = {
+            "symbol": "RELIANCE",
             "side": "LONG",
-            "quantity": 35.0,
-            "average_entry": 218.40,
-            "current_price": 224.23,
-            "stop_loss": 212.00,
-            "take_profit": 236.00,
-            "unrealized_pnl": round(35.0 * (224.23 - 218.40), 2),
-            "unrealized_pnl_pct": round(((224.23 - 218.40) / 218.40) * 100, 2),
-            "market_value": round(35.0 * 224.23, 2),
+            "quantity": 50.0,
+            "average_entry": 2820.00,
+            "current_price": 2850.50,
+            "stop_loss": 2735.00,
+            "take_profit": 3050.00,
+            "unrealized_pnl": round(50.0 * (2850.50 - 2820.00), 2),
+            "unrealized_pnl_pct": round(((2850.50 - 2820.00) / 2820.00) * 100, 2),
+            "market_value": round(50.0 * 2850.50, 2),
             "ai_recommendation": "BUY",
             "risk_level": "LOW",
+            "exchange": "NSE",
+            "currency": "INR",
+            "currency_symbol": "₹",
             "blockchain_verified": True,
             "opened_at": (now - datetime.timedelta(days=3)).strftime("%Y-%m-%d %H:%M"),
         }
-        self.positions["NVDA"] = {
-            "symbol": "NVDA",
+        self.positions["TCS"] = {
+            "symbol": "TCS",
             "side": "LONG",
-            "quantity": 50.0,
-            "average_entry": 121.10,
-            "current_price": 128.50,
-            "stop_loss": 116.00,
-            "take_profit": 140.00,
-            "unrealized_pnl": round(50.0 * (128.50 - 121.10), 2),
-            "unrealized_pnl_pct": round(((128.50 - 121.10) / 121.10) * 100, 2),
-            "market_value": round(50.0 * 128.50, 2),
+            "quantity": 25.0,
+            "average_entry": 4150.00,
+            "current_price": 4210.00,
+            "stop_loss": 4025.00,
+            "take_profit": 4500.00,
+            "unrealized_pnl": round(25.0 * (4210.00 - 4150.00), 2),
+            "unrealized_pnl_pct": round(((4210.00 - 4150.00) / 4150.00) * 100, 2),
+            "market_value": round(25.0 * 4210.00, 2),
             "ai_recommendation": "BUY",
-            "risk_level": "MEDIUM",
+            "risk_level": "LOW",
+            "exchange": "NSE",
+            "currency": "INR",
+            "currency_symbol": "₹",
             "blockchain_verified": True,
             "opened_at": (now - datetime.timedelta(days=5)).strftime("%Y-%m-%d %H:%M"),
+        }
+        self.positions["INFY"] = {
+            "symbol": "INFY",
+            "side": "LONG",
+            "quantity": 40.0,
+            "average_entry": 1850.00,
+            "current_price": 1895.00,
+            "stop_loss": 1795.00,
+            "take_profit": 2045.00,
+            "unrealized_pnl": round(40.0 * (1895.00 - 1850.00), 2),
+            "unrealized_pnl_pct": round(((1895.00 - 1850.00) / 1850.00) * 100, 2),
+            "market_value": round(40.0 * 1895.00, 2),
+            "ai_recommendation": "BUY",
+            "risk_level": "LOW",
+            "exchange": "NSE",
+            "currency": "INR",
+            "currency_symbol": "₹",
+            "blockchain_verified": True,
+            "opened_at": (now - datetime.timedelta(days=2)).strftime("%Y-%m-%d %H:%M"),
         }
         invested = sum(p["market_value"] for p in self.positions.values())
         self.virtual_balance = max(0.0, self.initial_capital - invested)
@@ -107,10 +132,15 @@ class PaperTradingService:
             "total_pnl_pct": round(total_pnl_pct, 2),
             "open_positions_count": len(open_positions),
             "portfolio_exposure_pct": round(exposure_pct, 1),
-            "currency": "INR (₹)",
+            "currency": "INR",
+            "currency_symbol": "₹",
             "positions": open_positions,
             "allocations": allocations,
         }
+
+    def get_portfolio(self) -> Dict[str, Any]:
+        """Alias for get_portfolio_summary."""
+        return self.get_portfolio_summary()
 
     async def execute_trade(
         self,

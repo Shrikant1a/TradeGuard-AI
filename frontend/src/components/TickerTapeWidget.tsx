@@ -16,225 +16,223 @@ export interface TickerItem {
 
 const INITIAL_TICKERS: TickerItem[] = [
   {
-    symbol: "AAPL",
-    name: "Apple",
-    price: "336.11",
-    change: "+6.71",
-    changePct: "+2.04%",
+    symbol: "NIFTY 50",
+    name: "Nifty 50",
+    price: "25,150.25",
+    change: "+145.30",
+    changePct: "+0.58%",
     isPositive: true,
-    currencyPrefix: "$",
-    exchange: "NASDAQ",
-    iconType: "apple"
+    currencyPrefix: "₹",
+    exchange: "NSE",
+    iconType: "nifty"
   },
   {
-    symbol: "NVDA",
-    name: "NVIDIA",
-    price: "230.51",
-    change: "+3.30",
-    changePct: "+1.45%",
+    symbol: "SENSEX",
+    name: "BSE Sensex",
+    price: "81,980.50",
+    change: "+420.15",
+    changePct: "+0.52%",
     isPositive: true,
-    currencyPrefix: "$",
-    exchange: "NASDAQ",
-    iconType: "nvidia"
+    currencyPrefix: "₹",
+    exchange: "BSE",
+    iconType: "sensex"
   },
   {
-    symbol: "TSLA",
-    name: "Tesla",
-    price: "352.57",
-    change: "-0.27",
-    changePct: "-0.08%",
-    isPositive: false,
-    currencyPrefix: "$",
-    exchange: "NASDAQ",
-    iconType: "tesla"
-  },
-  {
-    symbol: "MSFT",
-    name: "Microsoft",
-    price: "518.08",
-    change: "+9.12",
-    changePct: "+1.79%",
+    symbol: "NIFTY BANK",
+    name: "Bank Nifty",
+    price: "52,410.80",
+    change: "+310.40",
+    changePct: "+0.60%",
     isPositive: true,
-    currencyPrefix: "$",
-    exchange: "NASDAQ",
-    iconType: "microsoft"
+    currencyPrefix: "₹",
+    exchange: "NSE",
+    iconType: "bank"
   },
   {
-    symbol: "GOOGL",
-    name: "Alphabet",
-    price: "344.08",
-    change: "+3.16",
-    changePct: "+0.93%",
-    isPositive: true,
-    currencyPrefix: "$",
-    exchange: "NASDAQ",
-    iconType: "google"
-  },
-  {
-    symbol: "AMZN",
-    name: "Amazon",
-    price: "249.15",
-    change: "+2.48",
-    changePct: "+1.01%",
-    isPositive: true,
-    currencyPrefix: "$",
-    exchange: "NASDAQ",
-    iconType: "amazon"
-  },
-  {
-    symbol: "META",
-    name: "Meta",
-    price: "725.18",
-    change: "-13.61",
-    changePct: "-1.84%",
-    isPositive: false,
-    currencyPrefix: "$",
-    exchange: "NASDAQ",
-    iconType: "meta"
-  },
-  {
-    symbol: "BTC-USD",
-    name: "Bitcoin",
-    price: "84,222.00",
-    change: "+598.40",
-    changePct: "+0.72%",
-    isPositive: true,
-    currencyPrefix: "$",
-    exchange: "Crypto",
-    iconType: "bitcoin"
-  },
-  {
-    symbol: "ETH-USD",
-    name: "Ethereum",
-    price: "2,715.19",
-    change: "+29.18",
-    changePct: "+1.09%",
-    isPositive: true,
-    currencyPrefix: "$",
-    exchange: "Crypto",
-    iconType: "ethereum"
-  },
-  {
-    symbol: "RELIANCE.NS",
+    symbol: "RELIANCE",
     name: "Reliance",
-    price: "2,985.40",
-    change: "+18.20",
-    changePct: "+0.61%",
+    price: "2,850.50",
+    change: "+32.10",
+    changePct: "+1.14%",
     isPositive: true,
     currencyPrefix: "₹",
     exchange: "NSE",
     iconType: "reliance"
   },
   {
-    symbol: "TCS.NS",
+    symbol: "TCS",
     name: "TCS",
-    price: "4,210.15",
-    change: "+24.50",
-    changePct: "+0.59%",
+    price: "4,210.00",
+    change: "+35.50",
+    changePct: "+0.85%",
     isPositive: true,
     currencyPrefix: "₹",
     exchange: "NSE",
     iconType: "tcs"
   },
   {
-    symbol: "INFY.NS",
+    symbol: "HDFCBANK",
+    name: "HDFC Bank",
+    price: "1,680.00",
+    change: "+12.40",
+    changePct: "+0.74%",
+    isPositive: true,
+    currencyPrefix: "₹",
+    exchange: "NSE",
+    iconType: "hdfc"
+  },
+  {
+    symbol: "INFY",
     name: "Infosys",
-    price: "1,890.30",
-    change: "+12.10",
-    changePct: "+0.64%",
+    price: "1,895.00",
+    change: "+15.20",
+    changePct: "+0.81%",
     isPositive: true,
     currencyPrefix: "₹",
     exchange: "NSE",
     iconType: "infosys"
   },
   {
-    symbol: "SPX",
-    name: "S&P 500",
-    price: "5,842.10",
-    change: "+34.50",
-    changePct: "+0.59%",
+    symbol: "ICICIBANK",
+    name: "ICICI Bank",
+    price: "1,245.00",
+    change: "+18.30",
+    changePct: "+1.49%",
     isPositive: true,
-    currencyPrefix: "",
-    exchange: "INDEX",
-    iconType: "spx"
+    currencyPrefix: "₹",
+    exchange: "NSE",
+    iconType: "icici"
   },
   {
-    symbol: "NDX",
-    name: "Nasdaq 100",
-    price: "20,412.30",
-    change: "+142.80",
-    changePct: "+0.70%",
+    symbol: "SBIN",
+    name: "SBI",
+    price: "795.00",
+    change: "+8.50",
+    changePct: "+1.08%",
     isPositive: true,
-    currencyPrefix: "",
-    exchange: "INDEX",
-    iconType: "ndx"
+    currencyPrefix: "₹",
+    exchange: "NSE",
+    iconType: "sbi"
+  },
+  {
+    symbol: "BHARTIARTL",
+    name: "Bharti Airtel",
+    price: "1,685.00",
+    change: "+21.00",
+    changePct: "+1.26%",
+    isPositive: true,
+    currencyPrefix: "₹",
+    exchange: "NSE",
+    iconType: "airtel"
+  },
+  {
+    symbol: "ITC",
+    name: "ITC Ltd",
+    price: "482.00",
+    change: "-1.50",
+    changePct: "-0.31%",
+    isPositive: false,
+    currencyPrefix: "₹",
+    exchange: "NSE",
+    iconType: "itc"
+  },
+  {
+    symbol: "LT",
+    name: "L&T",
+    price: "3,620.00",
+    change: "+45.00",
+    changePct: "+1.26%",
+    isPositive: true,
+    currencyPrefix: "₹",
+    exchange: "NSE",
+    iconType: "lt"
+  },
+  {
+    symbol: "BTC-USD",
+    name: "Bitcoin",
+    price: "63,450.00",
+    change: "+450.00",
+    changePct: "+0.71%",
+    isPositive: true,
+    currencyPrefix: "$",
+    exchange: "Crypto",
+    iconType: "bitcoin"
   }
 ];
 
 function TickerIcon({ type }: { type: string }) {
   switch (type) {
-    case "apple":
+    case "nifty":
+    case "sensex":
       return (
-        <span className="w-4 h-4 rounded-full bg-slate-900 border border-slate-700/80 flex items-center justify-center text-[10px] text-white font-bold shrink-0">
-          
+        <span className="w-4 h-4 rounded-sm bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-[8px] font-black text-white shrink-0">
+          50
         </span>
       );
-    case "nvidia":
+    case "bank":
       return (
-        <span className="w-4 h-4 rounded-sm bg-[#76b900] flex items-center justify-center text-[9px] text-black font-extrabold shrink-0">
-          N
+        <span className="w-4 h-4 rounded-sm bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-[8px] font-black text-white shrink-0">
+          BK
         </span>
       );
-    case "tesla":
+    case "reliance":
       return (
-        <span className="w-4 h-4 rounded-full bg-[#e82127] flex items-center justify-center text-[9px] text-white font-black shrink-0">
+        <span className="w-4 h-4 rounded-sm bg-[#0047ba] flex items-center justify-center text-[8px] font-bold text-white shrink-0">
+          R
+        </span>
+      );
+    case "tcs":
+      return (
+        <span className="w-4 h-4 rounded-sm bg-[#5c2d91] flex items-center justify-center text-[8px] font-bold text-white shrink-0">
           T
         </span>
       );
-    case "microsoft":
+    case "hdfc":
       return (
-        <span className="w-3.5 h-3.5 grid grid-cols-2 gap-0.5 shrink-0">
-          <span className="bg-[#f25022] rounded-[1px]" />
-          <span className="bg-[#7fba00] rounded-[1px]" />
-          <span className="bg-[#00a4ef] rounded-[1px]" />
-          <span className="bg-[#ffb900] rounded-[1px]" />
+        <span className="w-4 h-4 rounded-sm bg-[#004c8f] flex items-center justify-center text-[8px] font-bold text-white shrink-0">
+          H
         </span>
       );
-    case "google":
+    case "infosys":
       return (
-        <span className="w-4 h-4 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-[9px] font-bold text-[#4285f4] shrink-0">
-          G
+        <span className="w-4 h-4 rounded-sm bg-[#007cc3] flex items-center justify-center text-[8px] font-bold text-white shrink-0">
+          I
         </span>
       );
-    case "amazon":
+    case "icici":
       return (
-        <span className="w-4 h-4 rounded-full bg-[#ff9900] flex items-center justify-center text-[9px] font-black text-black shrink-0">
-          a
+        <span className="w-4 h-4 rounded-sm bg-[#b32b17] flex items-center justify-center text-[8px] font-bold text-white shrink-0">
+          IC
         </span>
       );
-    case "meta":
+    case "sbi":
       return (
-        <span className="w-4 h-4 rounded-full bg-[#0081fb] flex items-center justify-center text-[9px] font-extrabold text-white shrink-0">
-          ∞
+        <span className="w-4 h-4 rounded-sm bg-[#22579b] flex items-center justify-center text-[8px] font-bold text-white shrink-0">
+          SB
+        </span>
+      );
+    case "airtel":
+      return (
+        <span className="w-4 h-4 rounded-sm bg-[#ea2328] flex items-center justify-center text-[8px] font-bold text-white shrink-0">
+          A
+        </span>
+      );
+    case "itc":
+      return (
+        <span className="w-4 h-4 rounded-sm bg-[#0a5c36] flex items-center justify-center text-[8px] font-bold text-white shrink-0">
+          ITC
+        </span>
+      );
+    case "lt":
+      return (
+        <span className="w-4 h-4 rounded-sm bg-[#005a9c] flex items-center justify-center text-[8px] font-bold text-white shrink-0">
+          LT
         </span>
       );
     case "bitcoin":
       return (
         <span className="w-4 h-4 rounded-full bg-[#f7931a] flex items-center justify-center text-[9px] font-bold text-white shrink-0">
           ₿
-        </span>
-      );
-    case "ethereum":
-      return (
-        <span className="w-4 h-4 rounded-full bg-[#627eea] flex items-center justify-center text-[9px] font-bold text-white shrink-0">
-          Ξ
-        </span>
-      );
-    case "spx":
-    case "ndx":
-      return (
-        <span className="w-4 h-4 rounded-sm bg-rose-600/90 flex items-center justify-center text-[8px] font-bold text-white shrink-0">
-          500
         </span>
       );
     default:
@@ -265,7 +263,7 @@ export function TickerTapeWidget({ onSelectSymbol }: TickerTapeWidgetProps) {
           const isUp = delta >= 0;
           return {
             ...t,
-            price: newPrice > 1000 ? newPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : newPrice.toFixed(2),
+            price: newPrice > 1000 ? newPrice.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : newPrice.toFixed(2),
             isPositive: isUp ? true : t.isPositive
           };
         })

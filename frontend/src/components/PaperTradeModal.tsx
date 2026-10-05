@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { X, ShieldAlert, CheckCircle2, AlertTriangle, ArrowRight, Zap, RefreshCw } from "lucide-react";
 import { api } from "@/lib/api";
+import { formatCurrency, getCurrencySymbol } from "@/lib/currency";
 
 interface PaperTradeModalProps {
   isOpen: boolean;
@@ -9,20 +10,22 @@ interface PaperTradeModalProps {
   defaultSymbol?: string;
   defaultSide?: string;
   defaultPrice?: number;
+  currency?: string;
   onTradeExecuted?: () => void;
 }
 
 export function PaperTradeModal({
   isOpen,
   onClose,
-  defaultSymbol = "AAPL",
+  defaultSymbol = "RELIANCE",
   defaultSide = "BUY",
-  defaultPrice = 224.23,
+  defaultPrice = 2850.50,
+  currency = "INR",
   onTradeExecuted
 }: PaperTradeModalProps) {
   const [symbol, setSymbol] = useState(defaultSymbol);
   const [side, setSide] = useState(defaultSide);
-  const [quantity, setQuantity] = useState(25);
+  const [quantity, setQuantity] = useState(10);
   const [price, setPrice] = useState(defaultPrice);
   const [stopLoss, setStopLoss] = useState(round2(defaultPrice * 0.96));
   const [takeProfit, setTakeProfit] = useState(round2(defaultPrice * 1.08));
@@ -193,10 +196,10 @@ export function PaperTradeModal({
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-400">Limit / Market Price ($)</label>
+              <label className="text-xs font-medium text-slate-400">Limit / Market Price ({getCurrencySymbol(currency)})</label>
               <input
                 type="number"
-                step="0.01"
+                step="0.05"
                 value={price}
                 onChange={(e) => setPrice(Number(e.target.value))}
                 className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 font-mono text-sm focus:outline-none focus:border-cyan-400"
@@ -208,12 +211,12 @@ export function PaperTradeModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-rose-400 flex items-center justify-between">
-                <span>Stop Loss Price ($)</span>
+                <span>Stop Loss Price ({getCurrencySymbol(currency)})</span>
                 <span className="text-[10px] text-slate-500 font-normal">Mandatory</span>
               </label>
               <input
                 type="number"
-                step="0.01"
+                step="0.05"
                 value={stopLoss}
                 onChange={(e) => setStopLoss(Number(e.target.value))}
                 className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-900 border border-rose-500/40 text-slate-100 font-mono text-sm focus:outline-none focus:border-rose-400"
@@ -221,12 +224,12 @@ export function PaperTradeModal({
             </div>
             <div>
               <label className="text-xs font-medium text-emerald-400 flex items-center justify-between">
-                <span>Take Profit Price ($)</span>
+                <span>Take Profit Price ({getCurrencySymbol(currency)})</span>
                 <span className="text-[10px] text-slate-500 font-normal">Target</span>
               </label>
               <input
                 type="number"
-                step="0.01"
+                step="0.05"
                 value={takeProfit}
                 onChange={(e) => setTakeProfit(Number(e.target.value))}
                 className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-900 border border-emerald-500/40 text-slate-100 font-mono text-sm focus:outline-none focus:border-emerald-400"
@@ -238,15 +241,15 @@ export function PaperTradeModal({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-2.5 p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-center">
             <div>
               <span className="text-[10px] uppercase text-slate-400">Order Value</span>
-              <div className="text-sm font-bold font-mono text-slate-200 mt-0.5">${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+              <div className="text-sm font-bold font-mono text-slate-200 mt-0.5">{formatCurrency(totalValue, currency)}</div>
             </div>
             <div>
               <span className="text-[10px] uppercase text-rose-400">Max Risk</span>
-              <div className="text-sm font-bold font-mono text-rose-400 mt-0.5">${riskAmount.toFixed(2)}</div>
+              <div className="text-sm font-bold font-mono text-rose-400 mt-0.5">{formatCurrency(riskAmount, currency)}</div>
             </div>
             <div>
               <span className="text-[10px] uppercase text-emerald-400">Potential Gain</span>
-              <div className="text-sm font-bold font-mono text-emerald-400 mt-0.5">${potentialProfit.toFixed(2)}</div>
+              <div className="text-sm font-bold font-mono text-emerald-400 mt-0.5">{formatCurrency(potentialProfit, currency)}</div>
             </div>
           </div>
 

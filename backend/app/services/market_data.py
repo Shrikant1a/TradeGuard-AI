@@ -8,6 +8,7 @@ import numpy as np
 from backend.app.config import settings
 from backend.app.services.cache_service import cache_service
 from backend.app.services.circuit_breaker import market_circuit_breaker
+from backend.app.services.symbol_registry import symbol_registry
 
 logger = logging.getLogger("tradeguard.market_data")
 
@@ -34,15 +35,19 @@ class BaseMarketDataProvider(ABC):
 class YahooFinanceProvider(BaseMarketDataProvider):
     """
     Legitimate Yahoo Finance provider using yfinance with thread offloading,
-    transparent provider attribution, stale-data detection, and error-resilience.
+    symbol resolution for Indian (NSE/BSE) equities and indices, transparent provider attribution,
+    stale-data detection, and error-resilience.
     """
 
     def _sync_fetch_history(self, symbol: str, timeframe: str, period: str) -> Tuple[pd.DataFrame, Dict[str, Any]]:
         import yfinance as yf
-        ticker = yf.Ticker(symbol)
+        resolved = symbol_registry.resolve(symbol)
+        provider_sym = resolved["provider_symbol"]
+
+        ticker = yf.Ticker(provider_sym)
         df = ticker.history(period=period, interval=timeframe, timeout=10)
         if df.empty or len(df) < 5:
-            raise ValueError(f"Insufficient history data for {symbol} on Yahoo Finance")
+            raise ValueError(f"Insufficient history data for {symbol} ({provider_sym}) on Yahoo Finance")
 
         df = df.reset_index()
         col_map = {
@@ -68,12 +73,18 @@ class YahooFinanceProvider(BaseMarketDataProvider):
         is_stale = age_seconds > (4 * 86400 if "d" in timeframe else 3600)
 
         meta = {
+            "symbol": resolved["symbol"],
+            "company_name": resolved.get("company_name", f"{resolved['symbol']} Asset"),
+            "exchange": resolved.get("exchange", "NSE"),
+            "market": resolved.get("market", "India"),
+            "currency": resolved.get("currency", "INR"),
+            "currency_symbol": resolved.get("currency_symbol", "₹"),
             "provider": "Yahoo Finance",
             "is_live": True,
             "is_stale": is_stale,
             "timestamp": now.isoformat() + "Z",
             "last_bar_timestamp": last_dt.isoformat() + "Z",
-            "status_message": "Live market data successfully retrieved from Yahoo Finance" if not is_stale else "Market data retrieved from Yahoo Finance (Market Closed / Delayed)"
+            "status_message": f"Live market data retrieved from {resolved.get('exchange', 'NSE')} (Yahoo Finance)" if not is_stale else f"Market data retrieved from {resolved.get('exchange', 'NSE')} (Market Closed / Delayed)"
         }
         cleaned.attrs["meta"] = meta
         return cleaned, meta
@@ -87,20 +98,30 @@ class YahooFinanceProvider(BaseMarketDataProvider):
         except Exception as e:
             logger.warning(f"Yahoo Finance fetch failed for {symbol}: {e}. Falling back to synthetic series.")
             fb_df = self._generate_realistic_series(symbol, days=180)
+            resolved = symbol_registry.resolve(symbol)
             now = datetime.datetime.utcnow().isoformat() + "Z"
             meta = {
+                "symbol": resolved["symbol"],
+                "company_name": resolved.get("company_name", f"{resolved['symbol']} Asset"),
+                "exchange": resolved.get("exchange", "NSE"),
+                "market": resolved.get("market", "India"),
+                "currency": resolved.get("currency", "INR"),
+                "currency_symbol": resolved.get("currency_symbol", "₹"),
                 "provider": "Synthetic Fallback",
                 "is_live": False,
                 "is_stale": True,
                 "timestamp": now,
-                "status_message": f"Live Yahoo Finance feed unavailable ({str(e)}). Resilient synthetic simulation data displayed.",
+                "status_message": f"Live provider unavailable ({str(e)}). Resilient synthetic simulation data displayed.",
             }
             fb_df.attrs["meta"] = meta
             return (fb_df, meta) if with_meta else fb_df
 
     def _sync_fetch_quote(self, symbol: str) -> Dict[str, Any]:
         import yfinance as yf
-        ticker = yf.Ticker(symbol)
+        resolved = symbol_registry.resolve(symbol)
+        provider_sym = resolved["provider_symbol"]
+
+        ticker = yf.Ticker(provider_sym)
         fast_info = ticker.fast_info
         price = float(fast_info.last_price)
         prev_close = float(fast_info.previous_close or price)
@@ -110,20 +131,27 @@ class YahooFinanceProvider(BaseMarketDataProvider):
         now = datetime.datetime.utcnow()
         now_iso = now.isoformat() + "Z"
 
+        currency = getattr(fast_info, "currency", None) or resolved.get("currency", "INR")
+        curr_sym = "₹" if currency == "INR" else "$"
+
         return {
-            "symbol": symbol.upper(),
+            "symbol": resolved["symbol"],
+            "company_name": resolved.get("company_name", f"{resolved['symbol']} Asset"),
+            "exchange": resolved.get("exchange", "NSE"),
+            "market": resolved.get("market", "India"),
+            "currency": currency,
+            "currency_symbol": curr_sym,
             "price": round(price, 2),
             "change": round(change, 2),
             "change_pct": round(change_pct, 2),
-            "volume": int(getattr(fast_info, "last_volume", 0) or 15000000),
+            "volume": int(getattr(fast_info, "last_volume", 0) or 2500000),
             "day_high": round(float(getattr(fast_info, "day_high", price * 1.01)), 2),
             "day_low": round(float(getattr(fast_info, "day_low", price * 0.99)), 2),
-            "currency": getattr(fast_info, "currency", "USD"),
             "provider": "Yahoo Finance",
             "is_live": True,
             "is_stale": False,
             "timestamp": now_iso,
-            "status_message": "Live quote from Yahoo Finance",
+            "status_message": f"Live quote from {resolved.get('exchange', 'NSE')} (Yahoo Finance)",
         }
 
     async def get_current_quote(self, symbol: str) -> Dict[str, Any]:
@@ -134,64 +162,51 @@ class YahooFinanceProvider(BaseMarketDataProvider):
             return self._generate_fallback_quote(symbol, reason=str(e))
 
     async def search_assets(self, query: str) -> List[Dict[str, Any]]:
-        from backend.app.services.indian_market_data import INDIAN_STOCKS_CATALOG
-
-        global_assets = [
-            {"symbol": "AAPL", "name": "Apple Inc.", "exchange": "NASDAQ", "sector": "Technology", "price": 224.23},
-            {"symbol": "NVDA", "name": "NVIDIA Corporation", "exchange": "NASDAQ", "sector": "Semiconductors", "price": 128.50},
-            {"symbol": "MSFT", "name": "Microsoft Corp.", "exchange": "NASDAQ", "sector": "Technology", "price": 448.90},
-            {"symbol": "TSLA", "name": "Tesla, Inc.", "exchange": "NASDAQ", "sector": "Automotive", "price": 254.10},
-            {"symbol": "GOOGL", "name": "Alphabet Inc.", "exchange": "NASDAQ", "sector": "Communication", "price": 182.15},
-            {"symbol": "AMZN", "name": "Amazon.com Inc.", "exchange": "NASDAQ", "sector": "Consumer Cyclical", "price": 186.40},
-            {"symbol": "BTC-USD", "name": "Bitcoin USD", "exchange": "Crypto", "sector": "Cryptocurrency", "price": 63450.00},
-            {"symbol": "ETH-USD", "name": "Ethereum USD", "exchange": "Crypto", "sector": "Cryptocurrency", "price": 2650.00},
-        ]
-
-        indian_assets = [
-            {
-                "symbol": s["symbol"],
-                "name": s["name"],
-                "exchange": s["exchange"],
-                "sector": s["sector"],
-                "price": 1500.00,
-            }
-            for s in INDIAN_STOCKS_CATALOG
-        ]
-        all_assets = global_assets + indian_assets
-
-        q = query.upper().strip()
-        if not q:
-            return all_assets[:15]
-
-        matches = [a for a in all_assets if q in a["symbol"] or q in a["name"].upper() or q == a["exchange"].upper()]
-        if not matches:
-            matches.append({
-                "symbol": q,
-                "name": f"{q} Global Asset",
-                "exchange": "BSE" if q.endswith(".BO") else ("NSE" if q.endswith(".NS") else "GLOBAL"),
-                "sector": "Market Equities",
-                "price": 150.00,
-            })
-        return matches[:25]
+        return symbol_registry.search(query)
 
     def _generate_realistic_series(self, symbol: str, days: int = 180) -> pd.DataFrame:
         """Deterministic Geometric Brownian Motion based on symbol hash for fallback resilience"""
+        resolved = symbol_registry.resolve(symbol)
         seed = abs(hash(symbol)) % (2**31)
         np.random.seed(seed)
 
         base_prices = {
-            "AAPL": 220.0,
-            "NVDA": 125.0,
-            "MSFT": 440.0,
-            "TSLA": 240.0,
-            "GOOGL": 180.0,
-            "AMZN": 185.0,
-            "BTC-USD": 63000.0,
-            "ETH-USD": 2600.0,
-            "RELIANCE.NS": 2950.0,
-            "TCS.NS": 4200.0,
+            "AAPL": 224.0,
+            "NVDA": 128.0,
+            "MSFT": 448.0,
+            "TSLA": 254.0,
+            "GOOGL": 182.0,
+            "AMZN": 186.0,
+            "BTC-USD": 63450.0,
+            "ETH-USD": 2650.0,
+            "RELIANCE": 2850.50,
+            "RELIANCE.NS": 2850.50,
+            "TCS": 4210.00,
+            "TCS.NS": 4210.00,
+            "INFY": 1895.00,
+            "INFY.NS": 1895.00,
+            "HDFCBANK": 1680.00,
+            "HDFCBANK.NS": 1680.00,
+            "ICICIBANK": 1245.00,
+            "ICICIBANK.NS": 1245.00,
+            "SBIN": 795.00,
+            "SBIN.NS": 795.00,
+            "BHARTIARTL": 1685.00,
+            "ITC": 482.00,
+            "LT": 3620.00,
+            "KOTAKBANK": 1780.00,
+            "MARUTI": 12850.00,
+            "TATAMOTORS": 930.00,
+            "NIFTY 50": 25150.00,
+            "^NSEI": 25150.00,
+            "SENSEX": 81980.00,
+            "^BSESN": 81980.00,
+            "NIFTY BANK": 52400.00,
+            "^NSEBANK": 52400.00,
+            "NIFTY IT": 42100.00,
+            "^CNXIT": 42100.00,
         }
-        current = base_prices.get(symbol.upper(), 150.0)
+        current = base_prices.get(symbol.upper(), resolved.get("base_price", 1500.0 if resolved.get("currency") == "INR" else 150.0))
 
         dates = pd.date_range(end=datetime.datetime.utcnow(), periods=days, freq="D")
         daily_vol = 0.018
@@ -209,7 +224,7 @@ class YahooFinanceProvider(BaseMarketDataProvider):
             open_p = close + np.random.uniform(-daily_range * 0.4, daily_range * 0.4)
             high_p = max(open_p, close) + np.random.uniform(0, daily_range * 0.5)
             low_p = min(open_p, close) - np.random.uniform(0, daily_range * 0.5)
-            volume = float(np.random.lognormal(16.5, 0.5))
+            volume = float(np.random.lognormal(15.5 if resolved.get("currency") == "INR" else 16.5, 0.5))
 
             records.append({
                 "timestamp": dt,
@@ -223,6 +238,7 @@ class YahooFinanceProvider(BaseMarketDataProvider):
         return pd.DataFrame(records)
 
     def _generate_fallback_quote(self, symbol: str, reason: str = "") -> Dict[str, Any]:
+        resolved = symbol_registry.resolve(symbol)
         df = self._generate_realistic_series(symbol, days=5)
         last_row = df.iloc[-1]
         prev_row = df.iloc[-2]
@@ -232,14 +248,18 @@ class YahooFinanceProvider(BaseMarketDataProvider):
         now = datetime.datetime.utcnow().isoformat() + "Z"
 
         return {
-            "symbol": symbol.upper(),
+            "symbol": resolved["symbol"],
+            "company_name": resolved.get("company_name", f"{resolved['symbol']} Asset"),
+            "exchange": resolved.get("exchange", "NSE"),
+            "market": resolved.get("market", "India"),
+            "currency": resolved.get("currency", "INR"),
+            "currency_symbol": resolved.get("currency_symbol", "₹"),
             "price": round(float(last_row["close"]), 2),
             "change": round(float(change), 2),
             "change_pct": round(float(change_pct), 2),
             "volume": int(last_row["volume"]),
             "day_high": round(float(last_row["high"]), 2),
             "day_low": round(float(last_row["low"]), 2),
-            "currency": "INR" if ".NS" in symbol.upper() else "USD",
             "provider": "Synthetic Fallback",
             "is_live": False,
             "is_stale": True,

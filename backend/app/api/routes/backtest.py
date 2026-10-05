@@ -12,7 +12,7 @@ router = APIRouter(prefix="/api/backtest", tags=["Backtesting"])
 market_provider = MarketDataProvider.get_instance()
 
 class BacktestRequest(BaseModel):
-    symbol: str = "AAPL"
+    symbol: str = "RELIANCE"
     strategy: str = "ai_multi_factor" # ai_multi_factor, mean_reversion, ema_cross
     initial_capital: float = 1000000.0
     risk_per_trade_pct: float = 1.0
@@ -39,14 +39,20 @@ async def _execute_backtest_task(
     if _progress_callback:
         await _progress_callback(60)
 
+    from backend.app.services.symbol_registry import symbol_registry
+    resolved = symbol_registry.resolve(symbol)
+
     engine = BacktestingEngine(risk_per_trade_pct=params.get("risk_per_trade_pct", 1.0))
     result = engine.run_backtest(
         df=df,
-        symbol=symbol,
+        symbol=resolved["symbol"],
         strategy_name=strategy,
         initial_capital=initial_capital,
         strategy_params=params
     )
+    result["currency"] = resolved.get("currency", "INR")
+    result["currency_symbol"] = resolved.get("currency_symbol", "₹")
+    result["exchange"] = resolved.get("exchange", "NSE")
 
     if _progress_callback:
         await _progress_callback(95)

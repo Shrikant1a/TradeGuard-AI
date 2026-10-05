@@ -22,7 +22,7 @@ class CopilotService:
         self.market_provider = MarketDataProvider.get_instance()
         self.ai_engine = AIEngine()
 
-    async def answer_query(self, query: str, symbol_context: str = "AAPL") -> Dict[str, Any]:
+    async def answer_query(self, query: str, symbol_context: str = "RELIANCE") -> Dict[str, Any]:
         q = query.lower().strip()
         portfolio = paper_trading_service.get_portfolio_summary()
         news_provider = NewsProviderFactory.get_provider()
@@ -54,7 +54,7 @@ class CopilotService:
             if not positions:
                 return {
                     "query": query,
-                    "response": "You currently hold no open positions. Search for any asset (e.g. AAPL, NVDA, TSLA) to view asset-specific news intelligence.",
+                    "response": "You currently hold no open positions. Search for any asset (e.g. RELIANCE, TCS, INFY) to view asset-specific news intelligence.",
                     "context_category": "news_portfolio"
                 }
             
@@ -78,13 +78,13 @@ class CopilotService:
                 "context_category": "news_portfolio"
             }
 
-        # News Query: Stock specific news (e.g. "What is the latest news about AAPL?" or "Why is AAPL moving?")
+        # News Query: Stock specific news (e.g. "What is the latest news about RELIANCE?" or "Why is RELIANCE moving?")
         if "news about" in q or "latest news" in q or "moving today" in q or "news affected" in q or "why is" in q and "moving" in q:
             # Detect target symbol
             target_sym = symbol_context
             for word in q.upper().split():
                 clean = word.strip("?,.!")
-                if clean in ["AAPL", "NVDA", "TSLA", "MSFT", "AMZN", "GOOGL", "RELIANCE", "NIFTY", "BTC", "ETH", "GOLD"]:
+                if clean in ["RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK", "SBIN", "BHARTIARTL", "NIFTY", "SENSEX", "AAPL", "NVDA", "BTC"]:
                     target_sym = clean
                     break
 

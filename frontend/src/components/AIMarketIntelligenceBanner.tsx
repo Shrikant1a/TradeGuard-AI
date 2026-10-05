@@ -5,6 +5,7 @@ import {
   CheckCircle2, AlertTriangle, ArrowUpRight, Link2, 
   HelpCircle, RefreshCw 
 } from "lucide-react";
+import { formatCurrency, getCurrencySymbol } from "@/lib/currency";
 
 interface AIMarketIntelligenceBannerProps {
   data: any;
@@ -60,11 +61,12 @@ export function AIMarketIntelligenceBanner({
     );
   }
 
-  const { symbol = "AAPL", metrics = {}, signal = {}, explanation = {}, blockchain_verification } = data;
+  const { symbol = "RELIANCE", metrics = {}, signal = {}, explanation = {}, blockchain_verification, currency = "INR" } = data;
+  const currSymbol = getCurrencySymbol(data?.currency_symbol || currency);
   const isBuy = signal?.signal_type === "BUY";
   const isSell = signal?.signal_type === "SELL";
   const bullishPct = signal?.probabilities?.bullish ?? (isBuy ? (signal?.confidence || 76.5) : 32.0);
-  const closePrice = metrics?.close ?? 230.51;
+  const closePrice = metrics?.close ?? (currency === "INR" ? 2850.50 : 224.23);
   const atrPct = metrics?.atr_pct ?? 1.82;
   const trend = metrics?.trend || (isBuy ? "BULLISH" : "NEUTRAL");
   const sma50 = metrics?.sma_50 || Math.round(closePrice * 0.96 * 100) / 100;
@@ -73,14 +75,14 @@ export function AIMarketIntelligenceBanner({
   const positiveFactors: string[] = Array.isArray(explanation?.positive_factors)
     ? explanation.positive_factors
     : [
-        `Price (${typeof closePrice === "number" ? closePrice.toFixed(2) : closePrice}) is supported by moving average trend alignment`,
+        `Price (${typeof closePrice === "number" ? formatCurrency(closePrice, currency) : closePrice}) is supported by moving average trend alignment`,
         `RSI momentum indicator demonstrates constructive technical accumulation`,
         `Trading volume confirmed institutional execution participation`
       ];
   const riskFactors: string[] = Array.isArray(explanation?.risk_factors)
     ? explanation.risk_factors
     : [
-        `Dynamic stop-loss bracket established at $${signal?.stop_loss || (closePrice * 0.965).toFixed(2)}`,
+        `Dynamic stop-loss bracket established at ${currSymbol}${signal?.stop_loss || (closePrice * 0.965).toFixed(2)}`,
         `Monitor corporate earnings and macroeconomic releases for volatility shifts`
       ];
   const finalReasoning: string = explanation?.final_reasoning || explanation?.summary ||
@@ -138,7 +140,7 @@ export function AIMarketIntelligenceBanner({
             <h2 className="text-xl sm:text-2xl font-black text-slate-100 flex items-center gap-2 mt-0.5">
               {symbol}
               <span className="text-base sm:text-lg font-mono font-medium text-slate-300">
-                ${typeof closePrice === "number" ? closePrice.toFixed(2) : closePrice}
+                {formatCurrency(closePrice, currency)}
               </span>
               <span className={`text-xs sm:text-sm font-semibold flex items-center ${isBuy ? 'text-emerald-400' : 'text-rose-400'}`}>
                 {isBuy ? <TrendingUp className="w-4 h-4 mr-0.5" /> : <TrendingDown className="w-4 h-4 mr-0.5" />}
@@ -199,7 +201,7 @@ export function AIMarketIntelligenceBanner({
         <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between">
           <span className="text-[11px] font-medium text-slate-400 uppercase">Trend Regime</span>
           <div className="text-base font-bold text-slate-200 my-1">{trend}</div>
-          <span className="text-[10px] text-slate-400">SMA50: ${sma50}</span>
+          <span className="text-[10px] text-slate-400">SMA50: {currSymbol}{sma50}</span>
         </div>
 
         {/* Momentum & RSI */}
@@ -213,8 +215,8 @@ export function AIMarketIntelligenceBanner({
         <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between">
           <span className="text-[11px] font-medium text-slate-400 uppercase">Bracket SL / TP</span>
           <div className="text-xs font-mono font-bold text-slate-200 my-1">
-            <div className="text-rose-400">SL: ${signal?.stop_loss || (closePrice * 0.965).toFixed(2)}</div>
-            <div className="text-emerald-400">TP: ${signal?.take_profit || (closePrice * 1.075).toFixed(2)}</div>
+            <div className="text-rose-400">SL: {currSymbol}{signal?.stop_loss || (closePrice * 0.965).toFixed(2)}</div>
+            <div className="text-emerald-400">TP: {currSymbol}{signal?.take_profit || (closePrice * 1.075).toFixed(2)}</div>
           </div>
           <span className="text-[10px] text-slate-400">R:R {signal?.risk_reward_ratio || 2.1}:1</span>
         </div>

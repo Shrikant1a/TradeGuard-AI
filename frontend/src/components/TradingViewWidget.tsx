@@ -162,8 +162,13 @@ export function resolveTVSymbol(raw: string): string {
   if (s.endsWith(".NS")) return `NSE:${s.replace(".NS", "")}`;
   if (s.endsWith(".BO")) return `BSE:${s.replace(".BO", "")}`;
 
-  // ── US stocks — default to NASDAQ ─────────────────────────────────────────
-  // Well-known NYSE tickers
+  // ── Known US Stocks ───────────────────────────────────────────────────────
+  const nasdaq = new Set([
+    "AAPL", "NVDA", "TSLA", "MSFT", "GOOGL", "GOOG", "AMZN", "META",
+    "NFLX", "AMD", "INTC", "CSCO", "PEP", "AVGO", "COST", "QCOM", "ADBE"
+  ]);
+  if (nasdaq.has(s)) return `NASDAQ:${s}`;
+
   const nyse = new Set([
     "JPM","BAC","GS","MS","WFC","C","BRK.A","BRK.B",
     "XOM","CVX","COP","BP","PFE","JNJ","MRK","ABT",
@@ -172,11 +177,12 @@ export function resolveTVSymbol(raw: string): string {
   ]);
   if (nyse.has(s)) return `NYSE:${s}`;
 
-  return `NASDAQ:${s}`;
+  // Default bare equity to NSE India
+  return `NSE:${s}`;
 }
 
 export function TradingViewWidget({
-  symbol = "NASDAQ:AAPL",
+  symbol = "NSE:RELIANCE",
   theme = "dark",
   height = 580,
 }: TradingViewWidgetProps) {

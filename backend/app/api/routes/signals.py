@@ -51,7 +51,7 @@ async def list_signals(
     """Retrieve list of active and recent AI trading signals"""
     # Seed top signals if list is currently empty
     if len(GENERATED_SIGNALS) == 0:
-        seed_symbols = ["AAPL", "NVDA", "TSLA", "MSFT", "GOOGL", "BTC-USD", "RELIANCE.NS"]
+        seed_symbols = ["RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK", "SBIN", "BHARTIARTL", "TATAMOTORS"]
         for sym in seed_symbols:
             try:
                 df = await market_provider.get_historical_bars(sym)

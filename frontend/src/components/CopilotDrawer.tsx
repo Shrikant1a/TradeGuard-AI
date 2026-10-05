@@ -12,7 +12,7 @@ interface CopilotDrawerProps {
 export function CopilotDrawer({
   isOpen,
   onClose,
-  activeSymbol = "AAPL"
+  activeSymbol = "RELIANCE"
 }: CopilotDrawerProps) {
   const [messages, setMessages] = useState<Array<{ role: 'assistant' | 'user', content: string }>>([
     {

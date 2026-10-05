@@ -33,16 +33,38 @@ export interface FallbackChartResult {
 }
 
 const ASSET_CATALOG: Record<string, { price: number; currency: string; vol: number }> = {
-  // Indian Indices & Equities
+  // Indian Indices & Equities (NSE/BSE)
   "^NSEI": { price: 25320.0, currency: "INR", vol: 0.008 },
   "NIFTY": { price: 25320.0, currency: "INR", vol: 0.008 },
+  "NIFTY 50": { price: 25320.0, currency: "INR", vol: 0.008 },
   "^BSESN": { price: 82850.0, currency: "INR", vol: 0.008 },
   "SENSEX": { price: 82850.0, currency: "INR", vol: 0.008 },
-  "RELIANCE.NS": { price: 2980.5, currency: "INR", vol: 0.012 },
+  "^NSEBANK": { price: 52400.0, currency: "INR", vol: 0.010 },
+  "NIFTYBANK": { price: 52400.0, currency: "INR", vol: 0.010 },
+  "^CNXIT": { price: 41200.0, currency: "INR", vol: 0.011 },
+  "NIFTYIT": { price: 41200.0, currency: "INR", vol: 0.011 },
+  "RELIANCE": { price: 2850.5, currency: "INR", vol: 0.012 },
+  "RELIANCE.NS": { price: 2850.5, currency: "INR", vol: 0.012 },
+  "RELIANCE.BO": { price: 2850.5, currency: "INR", vol: 0.012 },
+  "TCS": { price: 4250.0, currency: "INR", vol: 0.011 },
   "TCS.NS": { price: 4250.0, currency: "INR", vol: 0.011 },
+  "INFY": { price: 1890.0, currency: "INR", vol: 0.013 },
   "INFY.NS": { price: 1890.0, currency: "INR", vol: 0.013 },
+  "HDFCBANK": { price: 1680.0, currency: "INR", vol: 0.012 },
   "HDFCBANK.NS": { price: 1680.0, currency: "INR", vol: 0.012 },
+  "ICICIBANK": { price: 1240.0, currency: "INR", vol: 0.012 },
   "ICICIBANK.NS": { price: 1240.0, currency: "INR", vol: 0.012 },
+  "SBIN": { price: 820.0, currency: "INR", vol: 0.013 },
+  "SBIN.NS": { price: 820.0, currency: "INR", vol: 0.013 },
+  "ITC": { price: 485.0, currency: "INR", vol: 0.010 },
+  "ITC.NS": { price: 485.0, currency: "INR", vol: 0.010 },
+  "LT": { price: 3650.0, currency: "INR", vol: 0.012 },
+  "LT.NS": { price: 3650.0, currency: "INR", vol: 0.012 },
+  "BHARTIARTL": { price: 1680.0, currency: "INR", vol: 0.012 },
+  "BHARTIARTL.NS": { price: 1680.0, currency: "INR", vol: 0.012 },
+  "MARUTI": { price: 12800.0, currency: "INR", vol: 0.013 },
+  "MARUTI.NS": { price: 12800.0, currency: "INR", vol: 0.013 },
+  "TATAMOTORS": { price: 985.0, currency: "INR", vol: 0.016 },
   "TATAMOTORS.NS": { price: 985.0, currency: "INR", vol: 0.016 },
 
   // US Equities & Tech

@@ -77,8 +77,16 @@ async def analyze_asset(symbol: str, background_tasks: BackgroundTasks):
         "status_message": "Live market data feed active"
     })
 
+    from backend.app.services.symbol_registry import symbol_registry
+    resolved = symbol_registry.resolve(sym)
+
     result = {
-        "symbol": sym,
+        "symbol": resolved["symbol"],
+        "company_name": resolved.get("company_name", f"{resolved['symbol']} Asset"),
+        "exchange": resolved.get("exchange", "NSE"),
+        "market": resolved.get("market", "India"),
+        "currency": resolved.get("currency", "INR"),
+        "currency_symbol": resolved.get("currency_symbol", "₹"),
         "metrics": metrics,
         "signal": signal_data,
         "explanation": explanation,

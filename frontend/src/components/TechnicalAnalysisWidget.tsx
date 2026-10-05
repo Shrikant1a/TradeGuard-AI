@@ -1,6 +1,8 @@
 "use client";
 import React, { useEffect, useRef } from "react";
 
+import { resolveClientTradingViewSymbol } from "@/lib/marketRegistry";
+
 /**
  * TradingView Technical Analysis Widget
  * Shows real-time oscillators + moving averages buy/sell summary.
@@ -12,7 +14,7 @@ interface TechnicalAnalysisWidgetProps {
 }
 
 export function TechnicalAnalysisWidget({
-  symbol = "NASDAQ:AAPL",
+  symbol = "NSE:RELIANCE",
   interval = "1W",
   height = 450,
 }: TechnicalAnalysisWidgetProps) {
@@ -21,6 +23,8 @@ export function TechnicalAnalysisWidget({
   useEffect(() => {
     if (!containerRef.current) return;
     containerRef.current.innerHTML = "";
+
+    const resolvedSymbol = resolveClientTradingViewSymbol(symbol);
 
     const script = document.createElement("script");
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js";
@@ -31,7 +35,7 @@ export function TechnicalAnalysisWidget({
       width: "100%",
       isTransparent: true,
       height,
-      symbol,
+      symbol: resolvedSymbol,
       showIntervalTabs: true,
       displayMode: "multiple",
       locale: "en",

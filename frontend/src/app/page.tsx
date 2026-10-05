@@ -35,36 +35,59 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FALLBACK_ARTICLES } from "@/lib/fallbackNewsData";
 import { FALLBACK_ALERTS } from "@/lib/fallbackPlatformData";
 import { generateFallbackAnalysis, generateFallbackMarketData } from "@/lib/chartFallback";
+import { formatCurrency, formatIndianNumber } from "@/lib/currency";
+import { resolveClientTradingViewSymbol, INDIAN_STOCKS, INDIAN_INDICES } from "@/lib/marketRegistry";
 
-// Predefined verified institutional asset coverage
+// Predefined verified institutional asset coverage with India-First priority
 const POPULAR_ASSETS = [
-  { symbol: "AAPL", name: "Apple Inc.", exchange: "NASDAQ", sector: "Technology" },
-  { symbol: "NVDA", name: "NVIDIA Corp.", exchange: "NASDAQ", sector: "Semiconductors" },
-  { symbol: "TSLA", name: "Tesla Inc.", exchange: "NASDAQ", sector: "Automotive" },
-  { symbol: "MSFT", name: "Microsoft Corp.", exchange: "NASDAQ", sector: "Technology" },
-  { symbol: "GOOGL", name: "Alphabet Inc.", exchange: "NASDAQ", sector: "Communication" },
-  { symbol: "AMZN", name: "Amazon.com", exchange: "NASDAQ", sector: "Consumer Cyclical" },
-  { symbol: "META", name: "Meta Platforms", exchange: "NASDAQ", sector: "Technology" },
-  { symbol: "BTC-USD", name: "Bitcoin USD", exchange: "Crypto", sector: "Cryptocurrency" },
-  { symbol: "ETH-USD", name: "Ethereum USD", exchange: "Crypto", sector: "Cryptocurrency" },
-  { symbol: "RELIANCE.NS", name: "Reliance Industries", exchange: "NSE", sector: "Energy" },
-  { symbol: "TCS.NS", name: "Tata Consultancy Services", exchange: "NSE", sector: "Technology" },
-  { symbol: "INFY.NS", name: "Infosys Ltd.", exchange: "NSE", sector: "Technology" },
-  { symbol: "SPX", name: "S&P 500 Index", exchange: "INDEX", sector: "Index" },
-  { symbol: "NDX", name: "Nasdaq 100 Index", exchange: "INDEX", sector: "Index" },
+  // 🇮🇳 Primary Indian Equities & Benchmark Indices (NSE / BSE)
+  { symbol: "RELIANCE", name: "Reliance Industries", exchange: "NSE", sector: "Energy", market: "India" },
+  { symbol: "TCS", name: "Tata Consultancy Services", exchange: "NSE", sector: "Technology", market: "India" },
+  { symbol: "INFY", name: "Infosys Ltd.", exchange: "NSE", sector: "Technology", market: "India" },
+  { symbol: "HDFCBANK", name: "HDFC Bank Ltd.", exchange: "NSE", sector: "Banking", market: "India" },
+  { symbol: "ICICIBANK", name: "ICICI Bank Ltd.", exchange: "NSE", sector: "Banking", market: "India" },
+  { symbol: "SBIN", name: "State Bank of India", exchange: "NSE", sector: "Banking", market: "India" },
+  { symbol: "ITC", name: "ITC Limited", exchange: "NSE", sector: "Consumer", market: "India" },
+  { symbol: "LT", name: "Larsen & Toubro", exchange: "NSE", sector: "Engineering", market: "India" },
+  { symbol: "BHARTIARTL", name: "Bharti Airtel", exchange: "NSE", sector: "Telecom", market: "India" },
+  { symbol: "MARUTI", name: "Maruti Suzuki India", exchange: "NSE", sector: "Automotive", market: "India" },
+  { symbol: "NIFTY 50", name: "NIFTY 50 Index", exchange: "NSE", sector: "Benchmark Index", market: "India" },
+  { symbol: "SENSEX", name: "BSE SENSEX Index", exchange: "BSE", sector: "Benchmark Index", market: "India" },
+  { symbol: "NIFTY BANK", name: "NIFTY Bank Index", exchange: "NSE", sector: "Sectoral Index", market: "India" },
+  { symbol: "NIFTY IT", name: "NIFTY IT Index", exchange: "NSE", sector: "Sectoral Index", market: "India" },
+
+  // 🌎 Global Markets & Digital Assets
+  { symbol: "AAPL", name: "Apple Inc.", exchange: "NASDAQ", sector: "Technology", market: "US" },
+  { symbol: "NVDA", name: "NVIDIA Corp.", exchange: "NASDAQ", sector: "Semiconductors", market: "US" },
+  { symbol: "TSLA", name: "Tesla Inc.", exchange: "NASDAQ", sector: "Automotive", market: "US" },
+  { symbol: "MSFT", name: "Microsoft Corp.", exchange: "NASDAQ", sector: "Technology", market: "US" },
+  { symbol: "BTC-USD", name: "Bitcoin USD", exchange: "Crypto", sector: "Cryptocurrency", market: "Global" },
+  { symbol: "ETH-USD", name: "Ethereum USD", exchange: "Crypto", sector: "Cryptocurrency", market: "Global" },
 ];
 
 export default function TradeGuardApp() {
   // Navigation active tab
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-  const [searchSymbol, setSearchSymbol] = useState("AAPL");
-  const [currentSymbol, setCurrentSymbol] = useState("AAPL");
+  const [marketScope, setMarketScope] = useState<"India" | "US" | "Global">("India");
+  const [marketStatus, setMarketStatus] = useState<{
+    status: string;
+    is_open: boolean;
+    ist_time?: string;
+    message?: string;
+  }>({
+    status: "OPEN",
+    is_open: true,
+    ist_time: "",
+    message: "09:15 - 15:30 IST",
+  });
+  const [searchSymbol, setSearchSymbol] = useState("RELIANCE");
+  const [currentSymbol, setCurrentSymbol] = useState("RELIANCE");
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   // Dedicated chart search state
   const [chartInput, setChartInput] = useState("");
-  const [chartSymbol, setChartSymbol] = useState("NASDAQ:AAPL");
+  const [chartSymbol, setChartSymbol] = useState("NSE:RELIANCE");
 
   // State data from backend
   const [analysisData, setAnalysisData] = useState<any>(null);
@@ -87,7 +110,7 @@ export default function TradeGuardApp() {
 
   // Modals & Drawers
   const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
-  const [tradeModalProps, setTradeModalProps] = useState({ symbol: "AAPL", side: "BUY", price: 224.23 });
+  const [tradeModalProps, setTradeModalProps] = useState({ symbol: "RELIANCE", side: "BUY", price: 2850.50 });
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
   const [verifyModalProps, setVerifyModalProps] = useState({ signalCode: "TG-1042", signalHash: "" });
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
@@ -116,7 +139,49 @@ export default function TradeGuardApp() {
     loadAllInitialData();
   }, []);
 
+  const loadMarketStatus = async () => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL !== undefined && process.env.NEXT_PUBLIC_API_URL !== ""
+        ? process.env.NEXT_PUBLIC_API_URL
+        : typeof window !== "undefined" ? "" : "http://127.0.0.1:8000";
+      const res = await fetch(`${apiUrl}/api/market-data/status`).then(r => r.json());
+      if (res && res.status) {
+        setMarketStatus(res);
+        return;
+      }
+    } catch {
+      // Graceful fallback to client-side IST calculation
+    }
+    const now = new Date();
+    const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    const istDate = new Date(istString);
+    const day = istDate.getDay();
+    const hours = istDate.getHours();
+    const minutes = istDate.getMinutes();
+    const timeInMins = hours * 60 + minutes;
+    const isWeekend = day === 0 || day === 6;
+    let status = "CLOSED";
+    let isOpen = false;
+    if (!isWeekend) {
+      if (timeInMins >= 540 && timeInMins < 555) {
+        status = "PRE-MARKET";
+      } else if (timeInMins >= 555 && timeInMins <= 930) {
+        status = "OPEN";
+        isOpen = true;
+      } else if (timeInMins > 930 && timeInMins <= 960) {
+        status = "POST-MARKET";
+      }
+    }
+    setMarketStatus({
+      status,
+      is_open: isOpen,
+      ist_time: istDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) + " IST",
+      message: isOpen ? "Live Regular Trading Session (09:15 - 15:30 IST)" : "Market Closed (Trading Hours: 09:15 - 15:30 IST)",
+    });
+  };
+
   const loadAllInitialData = async () => {
+    loadMarketStatus();
     // Priority 1: Interactive Core (active asset, portfolio balance, signals)
     await Promise.allSettled([
       loadAssetAnalysis(currentSymbol),
@@ -140,7 +205,7 @@ export default function TradeGuardApp() {
     }, 350);
   };
 
-  const loadNewsData = async (sym: string = "AAPL") => {
+  const loadNewsData = async (sym: string = "RELIANCE") => {
     try {
       const [latest, pNews, sNews] = await Promise.all([
         api.getLatestNews(3),
@@ -501,7 +566,7 @@ export default function TradeGuardApp() {
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   <input
                     type="text"
-                    placeholder="Search stock / crypto (AAPL, NVDA)..."
+                    placeholder="Search Indian stocks (RELIANCE, TCS) or global..."
                     value={searchSymbol}
                     onFocus={() => setIsSearchDropdownOpen(true)}
                     onChange={(e) => {
@@ -538,11 +603,17 @@ export default function TradeGuardApp() {
                       <span>Click Any Asset to Analyze</span>
                       <span className="text-slate-500 font-mono text-[9px]">{POPULAR_ASSETS.length} Available</span>
                     </div>
-                    {POPULAR_ASSETS.filter(a => 
-                      !searchSymbol || 
-                      a.symbol.toLowerCase().includes(searchSymbol.toLowerCase()) || 
-                      a.name.toLowerCase().includes(searchSymbol.toLowerCase())
-                    ).map((asset) => (
+                    {POPULAR_ASSETS.filter(a => {
+                      if (!searchSymbol) {
+                        if (marketScope === "India") return a.market === "India";
+                        if (marketScope === "US") return a.market === "US";
+                        return true;
+                      }
+                      return (
+                        a.symbol.toLowerCase().includes(searchSymbol.toLowerCase()) || 
+                        a.name.toLowerCase().includes(searchSymbol.toLowerCase())
+                      );
+                    }).map((asset) => (
                       <button
                         key={asset.symbol}
                         type="button"
@@ -572,6 +643,79 @@ export default function TradeGuardApp() {
 
           {/* Quick Metrics & Action Controls */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Market Scope Selector */}
+            <div className="hidden xl:flex items-center p-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-semibold">
+              <button
+                type="button"
+                onClick={() => {
+                  setMarketScope("India");
+                  selectAsset("RELIANCE");
+                }}
+                className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${
+                  marketScope === "India"
+                    ? "bg-cyan-500 text-slate-950 font-bold shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <span>🇮🇳</span>
+                <span>India</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMarketScope("US");
+                  selectAsset("AAPL");
+                }}
+                className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${
+                  marketScope === "US"
+                    ? "bg-cyan-500 text-slate-950 font-bold shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <span>🇺🇸</span>
+                <span>US</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMarketScope("Global");
+                  selectAsset("BTC-USD");
+                }}
+                className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${
+                  marketScope === "Global"
+                    ? "bg-cyan-500 text-slate-950 font-bold shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <span>🌐</span>
+                <span>Global</span>
+              </button>
+            </div>
+
+            {/* Indian Market Session Status Badge */}
+            <div
+              className={`hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-mono cursor-default ${
+                marketStatus.is_open
+                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                  : marketStatus.status === "PRE-MARKET"
+                  ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                  : "bg-slate-800/80 border-slate-700/60 text-slate-400"
+              }`}
+              title={`${marketStatus.message || "09:15 - 15:30 IST"} | Current: ${marketStatus.ist_time || "IST"}`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                marketStatus.is_open
+                  ? "bg-emerald-400 animate-pulse"
+                  : marketStatus.status === "PRE-MARKET"
+                  ? "bg-amber-400 animate-pulse"
+                  : "bg-slate-500"
+              }`} />
+              <span className="font-bold">NSE {marketStatus.status}</span>
+              {marketStatus.ist_time && (
+                <span className="text-[10px] opacity-75 hidden 2xl:inline">({marketStatus.ist_time})</span>
+              )}
+            </div>
+
             {/* Network indicator */}
             <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-[11px] font-mono">
               <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
@@ -600,7 +744,7 @@ export default function TradeGuardApp() {
 
             {/* Execute Paper Order Button */}
             <button
-              onClick={() => handleOpenTradeModal(currentSymbol, "BUY", analysisData?.metrics?.close || 224.23)}
+              onClick={() => handleOpenTradeModal(currentSymbol, "BUY", analysisData?.metrics?.close || 2850.50)}
               className="px-2.5 sm:px-3.5 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md shadow-cyan-500/20"
             >
               <Zap className="w-3.5 h-3.5" />
@@ -729,7 +873,9 @@ export default function TradeGuardApp() {
                       <div key={idx} className="p-3 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center justify-between text-xs">
                         <div className="flex items-center gap-3">
                           <span className="font-bold font-mono text-slate-200">{item.symbol}</span>
-                          <span className="font-mono text-slate-400">${item.price?.toFixed(2)}</span>
+                          <span className="font-mono text-slate-400">
+                            {formatCurrency(item.price, item.currency || (POPULAR_ASSETS.find(a => a.symbol === item.symbol)?.market === "US" ? "USD" : "INR"))}
+                          </span>
                           <span className="text-emerald-400 font-mono">+{item.change_pct?.toFixed(2)}%</span>
                         </div>
                         <div className="flex items-center gap-2">
@@ -767,7 +913,9 @@ export default function TradeGuardApp() {
                       <div key={idx} className="p-3 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center justify-between text-xs">
                         <div className="flex items-center gap-3">
                           <span className="font-bold font-mono text-slate-200">{item.symbol}</span>
-                          <span className="font-mono text-slate-400">${item.price?.toFixed(2)}</span>
+                          <span className="font-mono text-slate-400">
+                            {formatCurrency(item.price, item.currency || (POPULAR_ASSETS.find(a => a.symbol === item.symbol)?.market === "US" ? "USD" : "INR"))}
+                          </span>
                           <span className={`font-mono ${item.change_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                             {item.change_pct >= 0 ? `+${item.change_pct?.toFixed(2)}%` : `${item.change_pct?.toFixed(2)}%`}
                           </span>
@@ -967,7 +1115,9 @@ export default function TradeGuardApp() {
                       {scannerList.map((row, idx) => (
                         <tr key={idx} className="hover:bg-slate-900/50 transition-colors">
                           <td className="p-3.5 font-bold text-slate-100 text-sm">{row.symbol}</td>
-                          <td className="p-3.5 font-semibold text-slate-200">${row.price?.toFixed(2)}</td>
+                          <td className="p-3.5 font-semibold text-slate-200">
+                            {formatCurrency(row.price, row.currency || (POPULAR_ASSETS.find(a => a.symbol === row.symbol)?.market === "US" ? "USD" : "INR"))}
+                          </td>
                           <td className={`p-3.5 font-semibold ${row.change_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                             {row.change_pct >= 0 ? `+${row.change_pct?.toFixed(2)}%` : `${row.change_pct?.toFixed(2)}%`}
                           </td>
@@ -1041,7 +1191,12 @@ export default function TradeGuardApp() {
                       <h1 className="text-2xl font-black text-slate-100 flex items-center gap-2">
                         {currentSymbol}
                         <span className="font-mono text-cyan-300">
-                          {analysisData?.metrics?.close ? `$${analysisData.metrics.close.toFixed(2)}` : ""}
+                          {analysisData?.metrics?.close
+                            ? formatCurrency(
+                                analysisData.metrics.close,
+                                analysisData?.asset?.currency || (POPULAR_ASSETS.find(a => a.symbol === currentSymbol)?.market === "US" ? "USD" : "INR")
+                              )
+                            : ""}
                         </span>
                       </h1>
 
@@ -1073,7 +1228,7 @@ export default function TradeGuardApp() {
                       Open TradingView
                     </button>
                     <button
-                      onClick={() => handleOpenTradeModal(currentSymbol, analysisData?.signal?.signal_type || "BUY", analysisData?.metrics?.close || 224.23)}
+                      onClick={() => handleOpenTradeModal(currentSymbol, analysisData?.signal?.signal_type || "BUY", analysisData?.metrics?.close || 2850.50)}
                       className="px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-cyan-500/20"
                     >
                       <Zap className="w-4 h-4" /> Place Paper Order
@@ -1302,11 +1457,15 @@ export default function TradeGuardApp() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
                   <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
                     <span className="text-xs text-slate-400">Exchange</span>
-                    <div className="text-sm font-bold text-slate-200 mt-0.5">NASDAQ Global Market</div>
+                    <div className="text-sm font-bold text-slate-200 mt-0.5">
+                      {analysisData?.asset?.exchange || (POPULAR_ASSETS.find(a => a.symbol === currentSymbol)?.exchange || "NSE")}
+                    </div>
                   </div>
                   <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
                     <span className="text-xs text-slate-400">Currency</span>
-                    <div className="text-sm font-bold text-slate-200 mt-0.5">USD ($)</div>
+                    <div className="text-sm font-bold text-slate-200 mt-0.5">
+                      {analysisData?.asset?.currency === "USD" ? "USD ($)" : "INR (₹)"}
+                    </div>
                   </div>
                   <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
                     <span className="text-xs text-slate-400">Daily Volume</span>
@@ -1377,7 +1536,20 @@ export default function TradeGuardApp() {
               <div className="space-y-2">
                 {[
                   {
-                    label: "🇺🇸 US Stocks",
+                    label: "🇮🇳 Indian Markets (NSE / BSE)",
+                    symbols: [
+                      { name: "RELIANCE", tv: "NSE:RELIANCE" },
+                      { name: "TCS", tv: "NSE:TCS" },
+                      { name: "INFY", tv: "NSE:INFY" },
+                      { name: "HDFC Bank", tv: "NSE:HDFCBANK" },
+                      { name: "ICICI Bank", tv: "NSE:ICICIBANK" },
+                      { name: "SBIN", tv: "NSE:SBIN" },
+                      { name: "NIFTY 50", tv: "NSE:NIFTY50" },
+                      { name: "SENSEX", tv: "BSE:SENSEX" },
+                    ],
+                  },
+                  {
+                    label: "🇺🇸 US Stocks (Global)",
                     symbols: [
                       { name: "AAPL", tv: "NASDAQ:AAPL" },
                       { name: "NVDA", tv: "NASDAQ:NVDA" },
@@ -1387,19 +1559,6 @@ export default function TradeGuardApp() {
                       { name: "AMZN", tv: "NASDAQ:AMZN" },
                       { name: "META", tv: "NASDAQ:META" },
                       { name: "JPM", tv: "NYSE:JPM" },
-                    ],
-                  },
-                  {
-                    label: "🇮🇳 Indian Markets",
-                    symbols: [
-                      { name: "NIFTY 50", tv: "NSE:NIFTY50" },
-                      { name: "SENSEX", tv: "BSE:SENSEX" },
-                      { name: "RELIANCE", tv: "NSE:RELIANCE" },
-                      { name: "TCS", tv: "NSE:TCS" },
-                      { name: "INFY", tv: "NSE:INFY" },
-                      { name: "HDFC Bank", tv: "NSE:HDFCBANK" },
-                      { name: "ICICI Bank", tv: "NSE:ICICIBANK" },
-                      { name: "TATAMOTORS", tv: "NSE:TATAMOTORS" },
                     ],
                   },
                   {
@@ -1513,7 +1672,9 @@ export default function TradeGuardApp() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="font-extrabold text-slate-100 font-mono text-base">{sig.symbol}</span>
-                        <span className="text-xs text-slate-400 font-mono">${sig.current_price?.toFixed(2)}</span>
+                        <span className="text-xs text-slate-400 font-mono">
+                          {formatCurrency(sig.current_price, sig.currency || "INR")}
+                        </span>
                       </div>
                       <span className={`px-2 py-0.5 rounded text-xs font-bold ${
                         sig.signal_type === "BUY" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-rose-500/20 text-rose-400 border border-rose-500/30"
@@ -1533,11 +1694,15 @@ export default function TradeGuardApp() {
                       </div>
                       <div>
                         <span className="text-rose-400 block">Stop Loss</span>
-                        <span className="font-mono text-slate-200">${sig.stop_loss}</span>
+                        <span className="font-mono text-slate-200">
+                          {formatCurrency(sig.stop_loss, sig.currency || "INR")}
+                        </span>
                       </div>
                       <div>
                         <span className="text-emerald-400 block">Take Profit</span>
-                        <span className="font-mono text-slate-200">${sig.take_profit}</span>
+                        <span className="font-mono text-slate-200">
+                          {formatCurrency(sig.take_profit, sig.currency || "INR")}
+                        </span>
                       </div>
                     </div>
 
@@ -1634,12 +1799,18 @@ export default function TradeGuardApp() {
                           <td className="py-2.5 font-bold text-slate-100">{pos.symbol}</td>
                           <td className="py-2.5 text-emerald-400">{pos.side}</td>
                           <td className="py-2.5">{pos.quantity}</td>
-                          <td className="py-2.5">${pos.average_entry?.toFixed(2)}</td>
-                          <td className="py-2.5">${pos.current_price?.toFixed(2)}</td>
-                          <td className="py-2.5 text-emerald-400 font-bold">
-                            +${pos.unrealized_pnl?.toFixed(2)} (+{pos.unrealized_pnl_pct}%)
+                          <td className="py-2.5">
+                            {formatCurrency(pos.average_entry, pos.currency || "INR")}
                           </td>
-                          <td className="py-2.5 text-rose-400">${pos.stop_loss}</td>
+                          <td className="py-2.5">
+                            {formatCurrency(pos.current_price, pos.currency || "INR")}
+                          </td>
+                          <td className={`py-2.5 font-bold ${pos.unrealized_pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                            {pos.unrealized_pnl >= 0 ? "+" : ""}{formatCurrency(pos.unrealized_pnl, pos.currency || "INR")} ({pos.unrealized_pnl_pct}%)
+                          </td>
+                          <td className="py-2.5 text-rose-400">
+                            {formatCurrency(pos.stop_loss, pos.currency || "INR")}
+                          </td>
                           <td className="py-2.5">
                             <span className="px-2 py-0.5 rounded text-[10px] bg-cyan-500/20 text-cyan-300 font-bold">
                               {pos.ai_recommendation}
@@ -1683,9 +1854,10 @@ export default function TradeGuardApp() {
                       <PieChart>
                         <Pie
                           data={portfolioData?.allocations || [
-                            { symbol: "AAPL", value: 350000 },
-                            { symbol: "NVDA", value: 250000 },
-                            { symbol: "CASH", value: 487450 }
+                            { symbol: "RELIANCE", value: 350000 },
+                            { symbol: "TCS", value: 250000 },
+                            { symbol: "INFY", value: 180000 },
+                            { symbol: "CASH", value: 307450 }
                           ]}
                           dataKey="value"
                           nameKey="symbol"
@@ -1774,7 +1946,7 @@ export default function TradeGuardApp() {
                           <div className="flex items-center gap-2">
                             <span className="font-extrabold text-rose-400">⚠️ PORTFOLIO NEWS ALERT</span>
                             <span className="font-bold text-white px-2 py-0.2 rounded bg-slate-800 border border-slate-700">
-                              ${al.symbol}
+                              {al.symbol}
                             </span>
                             <span className="text-[10px] text-rose-300 bg-rose-500/20 px-1.5 py-0.2 rounded">
                               Impact: {al.impact_score}/100
@@ -1803,8 +1975,9 @@ export default function TradeGuardApp() {
                 {/* Per Holding News Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                   {(portfolioNews?.holdings_news || [
-                    { symbol: "AAPL", news_count: 3, sentiment: "POSITIVE", sentiment_score: 0.84, latest_headline: "Apple Reports Record Services Revenue and Stronger Gross Margins in Q3" },
-                    { symbol: "NVDA", news_count: 2, sentiment: "POSITIVE", sentiment_score: 0.88, latest_headline: "NVIDIA Expands Blackwell Enterprise AI Infrastructure with Tier-1 Cloud Hyperscalers" }
+                    { symbol: "RELIANCE", news_count: 4, sentiment: "POSITIVE", sentiment_score: 0.82, latest_headline: "Reliance Industries Accelerates ₹75,000 Crore Clean Energy Gigafactory Capex; Jio 5G Expands" },
+                    { symbol: "TCS", news_count: 3, sentiment: "POSITIVE", sentiment_score: 0.85, latest_headline: "TCS Secures $1.2B Enterprise Digital & AI Transformation Deal with European Banking Consortium" },
+                    { symbol: "HDFCBANK", news_count: 2, sentiment: "POSITIVE", sentiment_score: 0.78, latest_headline: "HDFC Bank Reports 16.5% YoY Deposit Accretion with Improving Asset Quality" }
                   ]).map((h: any, idx: number) => (
                     <div
                       key={idx}
@@ -1812,7 +1985,7 @@ export default function TradeGuardApp() {
                     >
                       <div className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="font-bold text-white text-sm">${h.symbol}</span>
+                          <span className="font-bold text-white text-sm">{h.symbol}</span>
                           <div className="flex items-center gap-2">
                             <span className="text-[10px] text-slate-400">{h.news_count} news stories</span>
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
@@ -1914,7 +2087,7 @@ export default function TradeGuardApp() {
               <div className="glass-panel p-5 rounded-xl border border-slate-800">
                 <h3 className="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-emerald-400" />
-                  Simulated Cumulative Equity Growth ($)
+                  Simulated Cumulative Equity Growth (₹ INR)
                 </h3>
                 <div className="h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
@@ -1926,8 +2099,18 @@ export default function TradeGuardApp() {
                         </linearGradient>
                       </defs>
                       <XAxis dataKey="date" stroke="#475569" fontSize={10} tickLine={false} />
-                      <YAxis stroke="#475569" fontSize={10} domain={['auto', 'auto']} orientation="right" tickLine={false} />
-                      <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", fontSize: "11px" }} />
+                      <YAxis
+                        stroke="#475569"
+                        fontSize={10}
+                        domain={['auto', 'auto']}
+                        orientation="right"
+                        tickLine={false}
+                        tickFormatter={(val: any) => `₹${(val / 1000).toFixed(0)}k`}
+                      />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", fontSize: "11px" }}
+                        formatter={(val: any) => [formatCurrency(Number(val), "INR"), "Simulated Equity"]}
+                      />
                       <Area type="monotone" dataKey="equity" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#equityGradient)" />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -2434,14 +2617,22 @@ export default function TradeGuardApp() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
                   <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
                     <span className="text-slate-400">Risk Profile</span>
                     <div className="text-sm font-bold text-cyan-300 mt-0.5">Capital Preservation / Moderate</div>
                   </div>
                   <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
                     <span className="text-slate-400">Default Currency</span>
-                    <div className="text-sm font-bold text-slate-200 mt-0.5">INR (₹) / USD ($)</div>
+                    <div className="text-sm font-bold text-slate-200 mt-0.5">INR (₹) [Primary]</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                    <span className="text-slate-400">Primary Exchanges</span>
+                    <div className="text-sm font-bold text-emerald-400 mt-0.5">NSE / BSE</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                    <span className="text-slate-400">Trading Timezone</span>
+                    <div className="text-sm font-bold text-slate-200 mt-0.5">Asia/Kolkata (IST)</div>
                   </div>
                 </div>
 

@@ -16,6 +16,7 @@ import {
   type Time,
 } from "lightweight-charts";
 import { generateFallbackChart } from "@/lib/chartFallback";
+import { formatCurrency } from "@/lib/currency";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL !== undefined && process.env.NEXT_PUBLIC_API_URL !== ""
@@ -65,7 +66,12 @@ function toYahooSymbol(raw: string): string {
   // Indices
   const indexMap: Record<string, string> = {
     "NSE:NIFTY50": "^NSEI",
+    "NSE:NIFTY": "^NSEI",
+    "NIFTY": "^NSEI",
+    "NIFTY 50": "^NSEI",
     "BSE:SENSEX": "^BSESN",
+    "SENSEX": "^BSESN",
+    "NSE:BANKNIFTY": "^NSEBANK",
     "FOREXCOM:SPXUSD": "^GSPC",
     "FOREXCOM:NSXUSD": "^NDX",
     "FOREXCOM:DJI": "^DJI",
@@ -78,6 +84,13 @@ function toYahooSymbol(raw: string): string {
   // NASDAQ / NYSE bare ticker
   if (s.startsWith("NASDAQ:")) return s.replace("NASDAQ:", "");
   if (s.startsWith("NYSE:")) return s.replace("NYSE:", "");
+
+  // Bare ticker without dots or symbols defaults to .NS unless known US stock
+  const US_TICKERS = ["AAPL", "NVDA", "TSLA", "MSFT", "AMZN", "META", "GOOGL", "GOOG", "JPM", "SPY", "QQQ"];
+  if (!s.includes("-") && !s.includes("=") && !s.includes("^")) {
+    if (US_TICKERS.includes(s)) return s;
+    return `${s}.NS`;
+  }
 
   return s; // fallback: pass raw
 }
@@ -113,7 +126,7 @@ const TIMEFRAMES = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export function LightweightChartWidget({
-  symbol = "AAPL",
+  symbol = "RELIANCE",
   height = 540,
 }: LightweightChartWidgetProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -349,12 +362,23 @@ export function LightweightChartWidget({
           {quote && (
             <>
               <span className="font-mono font-bold text-slate-100">
-                {quote.currency === "INR" ? "₹" : "$"}
-                {quote.close?.toLocaleString()}
+                {formatCurrency(
+                  quote.close || quote.price || 0,
+                  quote.currency || (displaySymbol.endsWith(".NS") || displaySymbol.endsWith(".BO") ? "INR" : "USD")
+                )}
               </span>
               <span className={`text-xs font-semibold ${changeColor}`}>
                 {isUp ? "▲" : "▼"} {Math.abs(quote.change_pct || 0).toFixed(2)}%
               </span>
+              {quote.is_fallback || !quote.is_live ? (
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                  ● SIMULATED
+                </span>
+              ) : (
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                  ● LIVE
+                </span>
+              )}
             </>
           )}
           {loading && (

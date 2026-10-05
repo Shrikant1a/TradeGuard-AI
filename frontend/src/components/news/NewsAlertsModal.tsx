@@ -9,7 +9,7 @@ interface NewsAlertsModalProps {
 
 export function NewsAlertsModal({ onClose }: NewsAlertsModalProps) {
   const [alerts, setAlerts] = useState<any[]>([]);
-  const [symbol, setSymbol] = useState("AAPL");
+  const [symbol, setSymbol] = useState("RELIANCE");
   const [minImpact, setMinImpact] = useState(70);
   const [sentiment, setSentiment] = useState("ALL");
   const [submitting, setSubmitting] = useState(false);
@@ -87,7 +87,7 @@ export function NewsAlertsModal({ onClose }: NewsAlertsModalProps) {
               <label className="text-[11px] font-semibold text-slate-300 block mb-1">Asset Symbol</label>
               <input
                 type="text"
-                placeholder="e.g. AAPL, NVDA, TSLA"
+                placeholder="e.g. RELIANCE, TCS, INFY"
                 value={symbol}
                 onChange={(e) => setSymbol(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"

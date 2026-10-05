@@ -334,7 +334,7 @@ export function NewsDashboard({ onSelectSymbol }: NewsDashboardProps) {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search AAPL, Fed, AI, Inflation..."
+                placeholder="Search RELIANCE, NIFTY, RBI, Inflation..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-8 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"

@@ -83,11 +83,11 @@ export function HowToUseGuide({ onNavigateTab, onOpenTradeModal }: HowToUseGuide
     },
     {
       q: "How do I change the stock or cryptocurrency being analyzed?",
-      a: "You have 3 easy ways: 1) Click any stock pill (e.g. AAPL, NVDA, TSLA, BTC-USD) in the AI Stock Analyzer header. 2) Click the dropdown menu next to the stock name. 3) Type any ticker in the top search bar and press Enter."
+      a: "You have 3 easy ways: 1) Click any stock pill (e.g. RELIANCE, TCS, INFY, HDFCBANK) in the AI Stock Analyzer header. 2) Click the dropdown menu next to the stock name. 3) Type any ticker in the top search bar and press Enter."
     },
     {
       q: "Why was my paper trade rejected or blocked by the Risk Engine?",
-      a: "TradeGuard AI has an active Risk Gatekeeper. Your order will be blocked if: 1) You did not set a Stop-Loss. 2) The total dollar risk on the trade exceeds 1.0% of your account capital (₹10,000). 3) Total open exposure exceeds 40%. 4) The Emergency Circuit Breaker is turned ON."
+      a: "TradeGuard AI has an active Risk Gatekeeper. Your order will be blocked if: 1) You did not set a Stop-Loss. 2) The total financial risk on the trade exceeds 1.0% of your account capital (₹10,000). 3) Total open exposure exceeds 40%. 4) The Emergency Circuit Breaker is turned ON."
     },
     {
       q: "What is the difference between Bullish, Bearish, and Neutral signals?",
@@ -221,7 +221,7 @@ export function HowToUseGuide({ onNavigateTab, onOpenTradeModal }: HowToUseGuide
                     <ul className="list-disc list-inside space-y-1 text-slate-400 pl-1">
                       <li><strong>Click on the Top Search Bar:</strong> An instant dropdown appears with popular stocks & cryptos.</li>
                       <li><strong>Type Any Ticker:</strong> Type e.g. <code className="text-cyan-300 font-mono">NVDA</code>, <code className="text-cyan-300 font-mono">TSLA</code>, or <code className="text-cyan-300 font-mono">BTC-USD</code> and press Enter.</li>
-                      <li><strong>One-Click Stock Switcher Pills:</strong> In the <em>AI Stock Analyzer</em>, click the pill buttons (<code className="text-cyan-300 font-mono">[AAPL] [NVDA] [TSLA]</code>) to jump between assets immediately.</li>
+                      <li><strong>One-Click Stock Switcher Pills:</strong> In the <em>AI Stock Analyzer</em>, click the pill buttons (<code className="text-cyan-300 font-mono">[RELIANCE] [TCS] [INFY]</code>) to jump between assets immediately.</li>
                     </ul>
                   </div>
 
@@ -570,7 +570,7 @@ export function HowToUseGuide({ onNavigateTab, onOpenTradeModal }: HowToUseGuide
                     <h3 className="font-bold text-cyan-300 text-sm">Example Questions You Can Ask:</h3>
                     <div className="space-y-1.5">
                       <div className="p-2 rounded bg-slate-900/80 text-slate-200 font-mono text-[11px]">
-                        "Why is AAPL showing a Bullish signal today?"
+                        "Why is RELIANCE showing a Bullish signal today?"
                       </div>
                       <div className="p-2 rounded bg-slate-900/80 text-slate-200 font-mono text-[11px]">
                         "Is my portfolio risk within the 40% exposure policy?"

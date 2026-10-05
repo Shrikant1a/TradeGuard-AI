@@ -15,11 +15,11 @@ from backend.app.services.news.worker import news_ingestion_worker
 
 router = APIRouter(prefix="/api/news", tags=["Financial News Intelligence"])
 
-# In-memory storage for user alerts and preferences (fallback / fast state)
+# In-memory storage for user alerts and preferences (India-first defaults)
 _user_alerts: List[Dict[str, Any]] = [
     {
         "id": 1,
-        "symbol": "AAPL",
+        "symbol": "RELIANCE",
         "min_impact": 70.0,
         "sentiment_filter": "ALL",
         "is_active": True,
@@ -27,19 +27,19 @@ _user_alerts: List[Dict[str, Any]] = [
     },
     {
         "id": 2,
-        "symbol": "NVDA",
+        "symbol": "TCS",
         "min_impact": 75.0,
-        "sentiment_filter": "NEGATIVE",
+        "sentiment_filter": "ALL",
         "is_active": True,
         "created_at": datetime.datetime.utcnow().isoformat() + "Z"
     }
 ]
 
 _user_preferences: Dict[str, Any] = {
-    "preferred_markets": ["US", "IN", "CRYPTO"],
-    "preferred_sectors": ["TECHNOLOGY", "FINANCE", "ENERGY"],
-    "watchlist": ["AAPL", "TSLA", "NVDA", "MSFT", "AMZN", "RELIANCE", "NIFTY"],
-    "news_categories": ["BREAKING", "STOCK", "EARNINGS", "ECONOMY"],
+    "preferred_markets": ["IN", "GLOBAL"],
+    "preferred_sectors": ["FINANCE", "TECHNOLOGY", "ENERGY", "AUTO"],
+    "watchlist": ["RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK", "SBIN", "NIFTY", "SENSEX"],
+    "news_categories": ["BREAKING", "STOCK", "EARNINGS", "ECONOMY", "RBI_POLICY", "SEBI_REGULATION"],
     "min_impact_score": 40.0,
     "min_relevance_score": 50.0,
     "notification_enabled": True,

@@ -58,7 +58,43 @@ class RiskEngine:
         self.max_volatility_threshold_atr_pct = max_volatility_threshold_atr_pct
         self.circuit_breaker_active = circuit_breaker_active
 
-    def evaluate_order(self, req: RiskCheckRequest) -> RiskCheckResult:
+    def evaluate_order(
+        self,
+        req: Optional[RiskCheckRequest] = None,
+        symbol: Optional[str] = None,
+        side: str = "BUY",
+        quantity: float = 1.0,
+        price: Optional[float] = None,
+        entry_price: Optional[float] = None,
+        stop_loss: Optional[float] = None,
+        take_profit: Optional[float] = None,
+        account_balance: Optional[float] = None,
+        portfolio_equity: Optional[float] = None,
+        existing_open_positions_count: int = 0,
+        current_portfolio_exposure_value: float = 0.0,
+        daily_realized_loss_pct: float = 0.0,
+        atr_pct: float = 2.0,
+        active_positions: Optional[List[Any]] = None,
+        **kwargs
+    ) -> RiskCheckResult:
+        if req is None:
+            resolved_entry = entry_price if entry_price is not None else (price or 0.0)
+            resolved_equity = portfolio_equity if portfolio_equity is not None else (account_balance or 1000000.0)
+            open_count = len(active_positions) if active_positions is not None else existing_open_positions_count
+            req = RiskCheckRequest(
+                symbol=symbol or "RELIANCE",
+                side=side,
+                quantity=quantity,
+                entry_price=resolved_entry,
+                stop_loss=stop_loss,
+                take_profit=take_profit,
+                portfolio_equity=resolved_equity,
+                existing_open_positions_count=open_count,
+                current_portfolio_exposure_value=current_portfolio_exposure_value,
+                daily_realized_loss_pct=daily_realized_loss_pct,
+                atr_pct=atr_pct,
+            )
+
         blocking_reasons = []
         warnings = []
 
