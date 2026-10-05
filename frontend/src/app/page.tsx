@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { 
   LayoutDashboard, LineChart, Cpu, BarChart3, Binary, 
   Wallet, ShieldCheck, History, Sliders, Bell, 
@@ -152,6 +152,23 @@ export default function TradeGuardApp() {
   // Loading states
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [loadingBacktest, setLoadingBacktest] = useState(false);
+
+  // Dedicated Analyzer search bar state
+  const [analyzerSearch, setAnalyzerSearch] = useState("");
+  const [analyzerFocused, setAnalyzerFocused] = useState(false);
+  const analyzerSearchRef = useRef<HTMLInputElement>(null);
+
+  const analyzerSuggestions = useCallback(() => {
+    const q = analyzerSearch.trim().toLowerCase();
+    if (!q) return POPULAR_ASSETS.slice(0, 12);
+    return POPULAR_ASSETS.filter(
+      (a) =>
+        a.symbol.toLowerCase().includes(q) ||
+        a.name.toLowerCase().includes(q) ||
+        a.exchange.toLowerCase().includes(q) ||
+        a.sector.toLowerCase().includes(q)
+    ).slice(0, 10);
+  }, [analyzerSearch]);
   const [webhookSending, setWebhookSending] = useState(false);
   const [webhookStatus, setWebhookStatus] = useState<string | null>(null);
 
@@ -1278,27 +1295,131 @@ export default function TradeGuardApp() {
                   </div>
                 </div>
 
-                {/* Quick Asset Switch Pills */}
-                <div className="pt-3 border-t border-slate-800/80 flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1.5">
-                    Switch Asset:
-                  </span>
-                  {POPULAR_ASSETS.map((asset) => {
-                    const isSelected = currentSymbol === asset.symbol;
-                    return (
+                {/* ── Analyzer Search Bar ── */}
+                <div className="pt-3 border-t border-slate-800/80">
+                  <div className="relative">
+                    {/* Input row */}
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const q = analyzerSearch.trim();
+                        if (q) {
+                          selectAsset(q);
+                          setAnalyzerSearch("");
+                          setAnalyzerFocused(false);
+                        }
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <div className="relative flex-1 min-w-0">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-cyan-400 pointer-events-none" />
+                        <input
+                          ref={analyzerSearchRef}
+                          type="text"
+                          value={analyzerSearch}
+                          onChange={(e) => { setAnalyzerSearch(e.target.value); setAnalyzerFocused(true); }}
+                          onFocus={() => setAnalyzerFocused(true)}
+                          onBlur={() => setTimeout(() => setAnalyzerFocused(false), 150)}
+                          placeholder="Search any stock, index or crypto… (e.g. INFY, AAPL, BTC)"
+                          className="w-full bg-slate-900 border border-cyan-500/30 hover:border-cyan-500/50 focus:border-cyan-400 text-slate-100 text-xs font-mono placeholder-slate-500 rounded-lg pl-8 pr-8 py-2 outline-none transition-colors"
+                        />
+                        {analyzerSearch && (
+                          <button
+                            type="button"
+                            onClick={() => { setAnalyzerSearch(""); setAnalyzerFocused(true); analyzerSearchRef.current?.focus(); }}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                       <button
-                        key={asset.symbol}
-                        onClick={() => selectAsset(asset.symbol)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all shrink-0 flex items-center gap-1.5 ${
-                          isSelected
-                            ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25 border border-cyan-400"
-                            : "bg-slate-900/90 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-700/60"
-                        }`}
+                        type="submit"
+                        className="px-3 py-2 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 text-xs font-bold transition-all shrink-0"
                       >
-                        <span>{asset.symbol}</span>
+                        Analyze
                       </button>
-                    );
-                  })}
+                    </form>
+
+                    {/* Autocomplete dropdown */}
+                    {analyzerFocused && (
+                      <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-[#0f172a] border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+                        {/* Header hint */}
+                        <div className="px-3 py-2 border-b border-white/5 flex items-center justify-between">
+                          <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+                            {analyzerSearch.trim() ? `Results for "${analyzerSearch}"` : "Popular Assets"}
+                          </span>
+                          <span className="text-[10px] text-slate-600">Enter to select</span>
+                        </div>
+                        {analyzerSuggestions().length === 0 ? (
+                          <div className="px-4 py-5 text-center">
+                            <TrendingUp className="w-6 h-6 text-slate-600 mx-auto mb-2" />
+                            <p className="text-xs text-slate-500">No match — type the exact ticker and press Analyze</p>
+                          </div>
+                        ) : (
+                          analyzerSuggestions().map((asset) => (
+                            <button
+                              key={asset.symbol}
+                              type="button"
+                              onMouseDown={() => {
+                                selectAsset(asset.symbol);
+                                setAnalyzerSearch("");
+                                setAnalyzerFocused(false);
+                              }}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 transition-colors text-left border-b border-white/5 last:border-0"
+                            >
+                              {/* Icon */}
+                              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/20 flex items-center justify-center shrink-0">
+                                <TrendingUp className="w-3 h-3 text-cyan-400" />
+                              </div>
+                              {/* Info */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-xs text-white font-mono">{asset.symbol}</span>
+                                  <span className="text-[10px] text-white/30 bg-white/5 px-1.5 py-0.5 rounded">{asset.exchange}</span>
+                                  <span className="text-[10px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded hidden sm:inline">{asset.sector}</span>
+                                </div>
+                                <div className="text-[11px] text-slate-400 truncate mt-0.5">{asset.name}</div>
+                              </div>
+                              {/* Market badge */}
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded shrink-0 ${
+                                asset.market === "India"
+                                  ? "bg-orange-500/15 text-orange-400 border border-orange-500/20"
+                                  : asset.market === "US"
+                                  ? "bg-blue-500/15 text-blue-400 border border-blue-500/20"
+                                  : "bg-purple-500/15 text-purple-400 border border-purple-500/20"
+                              }`}>
+                                {asset.market === "India" ? "🇮🇳" : asset.market === "US" ? "🇺🇸" : "🌐"} {asset.market}
+                              </span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Quick Asset Switch Pills */}
+                  <div className="mt-3 flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1.5">
+                      Quick:
+                    </span>
+                    {POPULAR_ASSETS.slice(0, 14).map((asset) => {
+                      const isSelected = currentSymbol === asset.symbol;
+                      return (
+                        <button
+                          key={asset.symbol}
+                          onClick={() => selectAsset(asset.symbol)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all shrink-0 ${
+                            isSelected
+                              ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25 border border-cyan-400"
+                              : "bg-slate-900/90 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-700/60"
+                          }`}
+                        >
+                          {asset.symbol}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
