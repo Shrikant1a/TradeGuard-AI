@@ -1,6 +1,11 @@
 [build]
-  publish = ".next"
-  command = "npm run build"
+  # @netlify/plugin-nextjs manages publish directory automatically
+  # Do NOT set publish = ".next" manually
+  command = "npm install && npm run build"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NEXT_TELEMETRY_DISABLED = "1"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
@@ -9,7 +14,7 @@
   from = "/api/*"
   to = "https://tradeguardd-api.onrender.com/api/:splat"
   status = 200
-  force = false
+  force = true
 
 [[headers]]
   for = "/*"
@@ -18,3 +23,4 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    Cache-Control = "public, max-age=0, must-revalidate"

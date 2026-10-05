@@ -1,19 +1,24 @@
 [build]
+  # Build from the frontend directory
   base = "frontend"
-  publish = ".next"
-  command = "npm run build"
+  # @netlify/plugin-nextjs manages the publish directory automatically
+  # Do NOT set publish = ".next" — the plugin sets it correctly for SSR/SSG
+  command = "npm install && npm run build"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NEXT_TELEMETRY_DISABLED = "1"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
 # Production API Reverse Proxy Routing
-# When deploying frontend on Netlify, forward /api/* calls to the deployed FastAPI backend
-# Replace destination URL with your deployed backend URL (Render, Fly.io, Railway, AWS, or custom domain)
+# Forward /api/* calls to the deployed FastAPI backend on Render
 [[redirects]]
   from = "/api/*"
   to = "https://tradeguardd-api.onrender.com/api/:splat"
   status = 200
-  force = false
+  force = true
 
 [[headers]]
   for = "/*"
@@ -22,3 +27,4 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    Cache-Control = "public, max-age=0, must-revalidate"
