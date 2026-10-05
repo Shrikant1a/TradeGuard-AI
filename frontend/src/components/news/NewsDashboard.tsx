@@ -19,6 +19,8 @@ export function NewsDashboard({ onSelectSymbol }: NewsDashboardProps) {
   const [breakingNews, setBreakingNews] = useState<any[]>(() => FALLBACK_ARTICLES.filter(a => a.is_breaking).slice(0, 4));
   const [loading, setLoading] = useState(false);
   const [isStale, setIsStale] = useState(false);
+  const [isLiveNews, setIsLiveNews] = useState<boolean>(false);
+  const [newsStatusMsg, setNewsStatusMsg] = useState<string>("");
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
   // Filters
@@ -73,6 +75,8 @@ export function NewsDashboard({ onSelectSymbol }: NewsDashboardProps) {
           });
       setArticles(feedArticles);
       setIsStale(feedRes?.is_stale || false);
+      setIsLiveNews(feedRes?.is_live ?? false);
+      setNewsStatusMsg(feedRes?.status_message || "");
       setBreakingNews(breakingRes && breakingRes.length > 0 ? breakingRes : FALLBACK_ARTICLES.filter(a => a.is_breaking).slice(0, 4));
       setLastRefreshed(new Date());
     } catch (e) {
@@ -85,6 +89,8 @@ export function NewsDashboard({ onSelectSymbol }: NewsDashboardProps) {
         limit: 30
       });
       setArticles(fallback);
+      setIsLiveNews(false);
+      setNewsStatusMsg("Live news temporarily unavailable");
       setBreakingNews(FALLBACK_ARTICLES.filter(a => a.is_breaking).slice(0, 4));
     } finally {
       setLoading(false);
@@ -204,6 +210,21 @@ export function NewsDashboard({ onSelectSymbol }: NewsDashboardProps) {
               Analyze Event →
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Transparency Banner: Live vs Archive News */}
+      {!isLiveNews && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs text-amber-300">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0"></span>
+            <span>
+              <strong>● DEMONSTRATION ARCHIVE:</strong> Live financial news feed temporarily unavailable (External news API credentials not configured). Curated historical market events displayed with verified sentiment analysis.
+            </span>
+          </div>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-300 shrink-0 uppercase">
+            Curated Archive
+          </span>
         </div>
       )}
 

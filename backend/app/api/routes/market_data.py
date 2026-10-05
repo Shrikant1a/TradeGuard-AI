@@ -1,3 +1,4 @@
+import datetime
 from fastapi import APIRouter, Query, HTTPException
 from typing import Dict, Any
 from backend.app.services.market_data import MarketDataProvider
@@ -11,9 +12,13 @@ async def get_market_data(
     timeframe: str = Query("1d", description="Timeframe interval (1d, 1h, 1wk)"),
     period: str = Query("6mo", description="Historical period (1mo, 3mo, 6mo, 1y, 2y)")
 ):
-    """Retrieve historical OHLCV candle bars for a symbol"""
+    """
+    Retrieve historical OHLCV candle bars and transparent live/fallback quote for a symbol.
+    Clearly attributes provider ('Yahoo Finance' vs 'Synthetic Fallback'),
+    live status, staleness indicator, and timestamp.
+    """
     sym = symbol.upper().strip()
-    df = await market_provider.get_historical_bars(sym, timeframe, period)
+    df, meta = await market_provider.get_historical_bars(sym, timeframe, period, with_meta=True)
     quote = await market_provider.get_current_quote(sym)
     
     # Format candles for chart rendering
@@ -32,6 +37,11 @@ async def get_market_data(
         "symbol": sym,
         "timeframe": timeframe,
         "period": period,
+        "provider": meta.get("provider", quote.get("provider", "Yahoo Finance")),
+        "is_live": meta.get("is_live", quote.get("is_live", True)),
+        "is_stale": meta.get("is_stale", quote.get("is_stale", False)),
+        "timestamp": meta.get("timestamp", datetime.datetime.utcnow().isoformat() + "Z"),
+        "status_message": meta.get("status_message", quote.get("status_message", "Market data active")),
         "quote": quote,
         "candles": candles,
         "total_bars": len(candles)

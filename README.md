@@ -62,6 +62,21 @@ TradeGuard AI's core unique differentiator:
 
 ---
 
+## 🔍 Truthful System Provenance Matrix (REAL vs SIMULATED vs FALLBACK)
+
+TradeGuard AI strictly adheres to full transparency across every subsystem:
+
+| Subsystem | Real Implementation | Fallback / Simulated Behavior | Transparency & Labeling |
+| :--- | :--- | :--- | :--- |
+| **Market Data** | Live Yahoo Finance (`yfinance`) with thread offloading and stale-data checking. | Deterministic Geometric Brownian Motion calibrated per symbol. | Labeled `● LIVE DATA (Yahoo Finance)` or `● SIMULATED / FALLBACK DATA` with tooltip explanation. |
+| **AI Analysis & Signals** | Multi-factor feature engineering, Logistic Regression, Random Forest, Gradient Boosting. | Controlled error when historical data < 15 bars. No fake predictions. | Calibrated probabilistic wording (*"Model-estimated directional probability"*). Never *"Guaranteed profit"*. |
+| **Pre-Trade Risk Engine** | Server-side enforcement of 1% max risk, 3% daily circuit breaker, 40% exposure, 15% single-position, 5 positions max, mandatory SL/TP. | N/A — Always strictly enforced server-side. Orders violating policy are blocked. | Returns `allowed=false`, `status="BLOCKED"`, and explicit `reasons`. |
+| **Paper Trading** | Virtual balance ledger, unique `ORD-...` order IDs, realized/unrealized P&L, database persistence. | Paper capital is virtual (₹10,00,000 / $10,000 baseline). No real money broker execution. | Labeled as simulated paper trading. Prevents negative quantities, selling unowned shares, or selling > owned. |
+| **Stellar Soroban Blockchain** | Deployed Soroban contract `CAKWQF4...53SO` on Stellar Testnet. Real signed transactions submitted, real tx hashes, real ledger sequences. | When `STELLAR_SECRET_KEY` is not set, status remains `PENDING`. **Never** invents fake tx hashes or fake ledgers. | Labeled `VERIFIED` only upon real on-chain confirmation or contract read verification. Direct Stellar Expert links. |
+| **Financial News** | Alpha Vantage & GNews API integrations with sentiment analysis and deduplication. | Curated historical financial events archive with verified sentiment tags. | Labeled `● DEMONSTRATION ARCHIVE` whenever external live news API keys are unconfigured. |
+
+---
+
 ## 📖 Complete Step-by-Step User Guide
 
 > For the in-depth manual covering all 16 views, mathematical formulas, and advanced workflows, see **[USER_GUIDE.md](./USER_GUIDE.md)**.
@@ -262,16 +277,19 @@ This reference explains **where every part of the system lives**, **what technol
 
 ### 5. ⛓️ Blockchain Layer (Stellar Soroban)
 - **Directory**: [`contracts/trade_guard_audit/`](./contracts/trade_guard_audit)
-- **What it uses**:
-  - **Smart Contract Language**: Rust with `soroban-sdk = "21.0.0"`
-  - **Target Network**: Stellar Testnet (`https://soroban-testnet.stellar.org`)
+- **Deployed Contract ID**: `CAKWQF4XR6QHLSOWHSS7YOU5Z5VTEDUBPT3C37JVDOFWUPQKPWPU53SO` (Stellar Testnet)
+- **Smart Contract Language**: Rust with `soroban-sdk = "21.0.0"`
+- **Target Network**: Stellar Testnet (`https://soroban-testnet.stellar.org`)
+- **Network Passphrase**: `Test SDF Network ; September 2015`
 - **What it does**:
-  - Solves the "hindsight bias" problem common in trading bots.
-  - The moment an AI signal is generated, a **SHA-256 cryptographic hash** of the signal, model version, and strategy parameters is inscribed into the `TradeGuardAudit` smart contract.
-  - Anyone can audit a signal on the public ledger to verify that the prediction was made *before* the subsequent price movement occurred.
+  - Solves the "hindsight bias" problem in algorithmic and AI trading systems.
+  - The moment an AI signal is generated or a paper trade is executed, a **canonical SHA-256 hash** of the signal payload (sorted keys, stable floats, timestamp, symbol) is inscribed into the `TradeGuardAudit` smart contract.
+  - Submits signed transactions via the official `stellar-sdk` Python client (`record_signal`).
+  - Verifies contract state on-chain via simulation (`get_signal`) and links directly to Stellar Expert Explorer (`https://stellar.expert/explorer/testnet/tx/{tx_hash}`).
+  - **No Fake Hashes Policy**: Verification status displays `VERIFIED` only after a genuine on-chain confirmation or smart contract read matches the payload hash. Otherwise reports `PENDING` or `FAILED`.
 - **Testing Contract**:
   ```bash
-  cargo check --manifest-path contracts/trade_guard_audit/Cargo.toml --jobs 1
+  cargo test --lib --manifest-path contracts/trade_guard_audit/Cargo.toml
   ```
 
 ---
@@ -293,6 +311,7 @@ TradeGuard AI/
 │   ├── app/
 │   │   ├── api/
 │   │   │   └── routes/          # Modular API endpoints
+│   │   │       ├── auth.py
 │   │   │       ├── assets.py
 │   │   │       ├── market_data.py
 │   │   │       ├── analysis.py
@@ -301,6 +320,7 @@ TradeGuard AI/
 │   │   │       ├── paper_trades.py
 │   │   │       ├── portfolio.py
 │   │   │       ├── risk.py
+│   │   │       ├── news.py
 │   │   │       ├── webhooks.py
 │   │   │       ├── blockchain.py
 │   │   │       ├── strategies.py
@@ -323,7 +343,10 @@ TradeGuard AI/
 │   │   ├── config.py            # Environment configuration
 │   │   └── main.py              # FastAPI application entrypoint
 │   ├── tests/
-│   │   └── test_tradeguard.py   # Automated pytest unit & integration suite
+│   │   ├── test_tradeguard.py        # Core unit & integration suite
+│   │   ├── test_production_audit.py  # Production audit test suite
+│   │   ├── test_news.py              # News pipeline and archive tests
+│   │   └── test_bot_trainer.py       # Bot training and catalog tests
 │   └── requirements.txt
 ├── contracts/
 │   └── trade_guard_audit/       # Stellar Soroban Rust smart contract

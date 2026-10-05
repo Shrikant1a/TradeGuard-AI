@@ -34,8 +34,10 @@ async def analyze_asset(symbol: str, background_tasks: BackgroundTasks):
     signal_data = ai_engine.generate_signal(df, sym)
     explanation = ExplanationEngine.generate_explanation(signal_data)
 
-    # Optimistic non-blocking blockchain receipt
-    tx_hash = stellar_service.generate_sha256(f"{signal_data['signal_code']}:{signal_data['signal_hash']}").upper()
+    # Check if this signal is already on-chain or pending
+    existing_record = await stellar_service.get_signal_from_contract(signal_data["signal_code"])
+    is_on_chain = existing_record is not None and existing_record.get("signal_hash") == signal_data["signal_hash"]
+    
     blockchain_receipt = {
         "signal_code": signal_data["signal_code"],
         "asset_symbol": sym,
@@ -43,9 +45,10 @@ async def analyze_asset(symbol: str, background_tasks: BackgroundTasks):
         "signal_hash": signal_data["signal_hash"],
         "model_version": signal_data["model_version"],
         "stellar_contract_id": stellar_service.contract_id,
-        "verification_status": "SUBMITTED",
+        "verification_status": "VERIFIED" if is_on_chain else "PENDING",
         "network": stellar_service.network,
-        "stellar_tx_hash": tx_hash,
+        "stellar_tx_hash": None,
+        "explorer_url": None,
         "is_async": True
     }
 
@@ -66,6 +69,14 @@ async def analyze_asset(symbol: str, background_tasks: BackgroundTasks):
 
     background_tasks.add_task(async_record_chain)
 
+    meta = getattr(df, "attrs", {}).get("meta", {
+        "provider": "Yahoo Finance",
+        "is_live": True,
+        "is_stale": False,
+        "timestamp": None,
+        "status_message": "Live market data feed active"
+    })
+
     result = {
         "symbol": sym,
         "metrics": metrics,
@@ -73,6 +84,11 @@ async def analyze_asset(symbol: str, background_tasks: BackgroundTasks):
         "explanation": explanation,
         "blockchain_verification": blockchain_receipt,
         "model_performance": ai_engine._default_model_metrics(),
+        "provider": meta.get("provider", "Yahoo Finance"),
+        "is_live": meta.get("is_live", True),
+        "is_stale": meta.get("is_stale", False),
+        "timestamp": meta.get("timestamp"),
+        "status_message": meta.get("status_message"),
         "is_cached": False
     }
 

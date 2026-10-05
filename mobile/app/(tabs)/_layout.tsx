@@ -36,7 +36,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ focused, color }: { focused: boolean; color: string; size: number }) => (
+          tabBarIcon: ({ focused }) => (
             <View style={[styles.icon, focused && styles.iconActive]}>
             </View>
           ),

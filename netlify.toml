@@ -1,0 +1,24 @@
+[build]
+  base = "frontend"
+  publish = ".next"
+  command = "npm run build"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Production API Reverse Proxy Routing
+# When deploying frontend on Netlify, forward /api/* calls to the deployed FastAPI backend
+# Replace destination URL with your deployed backend URL (Render, Fly.io, Railway, AWS, or custom domain)
+[[redirects]]
+  from = "/api/*"
+  to = "https://tradeguardd-api.onrender.com/api/:splat"
+  status = 200
+  force = false
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

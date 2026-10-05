@@ -32,7 +32,12 @@ class Settings(BaseSettings):
     # Stellar Soroban Blockchain
     STELLAR_NETWORK: str = os.getenv("STELLAR_NETWORK", "TESTNET")  # TESTNET / PUBLIC / LOCAL
     STELLAR_RPC_URL: str = os.getenv("STELLAR_RPC_URL", "https://soroban-testnet.stellar.org")
-    STELLAR_CONTRACT_ID: str = os.getenv("STELLAR_CONTRACT_ID", "CCQJ2T75A2P2K4OQYZ6U3KBLQ6F364S432UYP3N75Z3Z5OQYZ6U3KBLQ")
+    STELLAR_NETWORK_PASSPHRASE: str = os.getenv(
+        "STELLAR_NETWORK_PASSPHRASE", "Test SDF Network ; September 2015"
+    )
+    STELLAR_CONTRACT_ID: str = os.getenv(
+        "STELLAR_CONTRACT_ID", "CAKWQF4XR6QHLSOWHSS7YOU5Z5VTEDUBPT3C37JVDOFWUPQKPWPU53SO"
+    )
     STELLAR_SECRET_KEY: Optional[str] = os.getenv("STELLAR_SECRET_KEY", None)
 
     # Risk Defaults (Virtual Currency: INR ₹)
@@ -44,6 +49,7 @@ class Settings(BaseSettings):
     
     # Market Data
     DEFAULT_MARKET_PROVIDER: str = "yahoo" # yahoo / alphavantage / mock
+    MARKET_DATA_STALE_THRESHOLD_SECONDS: int = int(os.getenv("MARKET_DATA_STALE_THRESHOLD_SECONDS", "900"))
     
     # Financial News Intelligence Configuration
     NEWS_PROVIDER: str = os.getenv("NEWS_PROVIDER", "alphavantage")  # alphavantage / gnews / demo

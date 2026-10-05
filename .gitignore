@@ -41,6 +41,7 @@ htmlcov/
 # Rust / Soroban Contract builds
 target/
 **/target/
+**/test_snapshots/
 
 # Ephemeral market data cache
 backend/app/data/market_cache/*.csv

@@ -31,7 +31,8 @@ from backend.app.api.routes import (
     copilot,
     scanner,
     news,
-    bot_training
+    bot_training,
+    auth
 )
 
 logging.basicConfig(
@@ -84,6 +85,7 @@ app.include_router(copilot.router)
 app.include_router(scanner.router)
 app.include_router(news.router)
 app.include_router(bot_training.router)
+app.include_router(auth.router)
 
 @app.on_event("startup")
 async def on_startup():
@@ -128,12 +130,9 @@ async def on_shutdown():
     if settings.RUN_EMBEDDED_WORKER:
         news_ingestion_worker.stop()
 
-@app.get("/health")
+@app.get("/health/liveness")
 async def liveness_check():
-    """
-    Lightweight Liveness Probe for Docker / Kubernetes / ECS orchestrators.
-    Returns immediately to confirm ASGI server process is healthy.
-    """
+    """Lightweight Liveness Probe for Docker / Kubernetes / ECS orchestrators."""
     return {
         "status": "ok",
         "app": settings.APP_NAME,
@@ -142,18 +141,31 @@ async def liveness_check():
         "timestamp": time.time()
     }
 
+@app.get("/health")
 @app.get("/health/ready")
 @app.get("/api/health")
-async def readiness_check():
+async def health_check():
     """
-    Production Deep Health & Readiness Check probing:
-    Database, Redis/Cache, Market Data, News Worker, Stellar RPC, and Circuit Breakers.
+    Production Deep Health & Readiness Check clearly indicating:
+    - API status
+    - Database status
+    - Market-data provider status
+    - Stellar / Soroban status
+    - Cache & Worker status
+    Guaranteed: Zero sensitive secrets exposed.
     """
     t0 = time.time()
     components = {}
     overall_status = "healthy"
 
-    # 1. Probe Database
+    # 1. API Status
+    components["api"] = {
+        "status": "UP",
+        "version": settings.APP_VERSION,
+        "environment": settings.ENVIRONMENT
+    }
+
+    # 2. Probe Database
     try:
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
@@ -163,7 +175,44 @@ async def readiness_check():
         components["database"] = {"status": "DOWN", "error": str(e)}
         overall_status = "degraded"
 
-    # 2. Probe Cache (Redis or Memory)
+    # 3. Probe Market Data Provider
+    try:
+        from backend.app.services.market_data import MarketDataProvider
+        market_prov = MarketDataProvider.get_instance()
+        cb_market = market_circuit_breaker.get_status()
+        components["market_data_provider"] = {
+            "status": "UP" if cb_market["state"] != "OPEN" else "DEGRADED",
+            "provider": settings.DEFAULT_MARKET_PROVIDER,
+            "circuit_breaker_state": cb_market["state"]
+        }
+    except Exception as e:
+        components["market_data_provider"] = {"status": "DOWN", "error": str(e)}
+        overall_status = "degraded"
+
+    # 4. Probe Stellar Soroban Status
+    try:
+        from backend.app.services.stellar_service import stellar_service
+        latest_ledger = await stellar_service.get_latest_ledger_sequence()
+        stellar_status = "UP" if latest_ledger is not None else "DEGRADED"
+        components["stellar"] = {
+            "status": stellar_status,
+            "network": settings.STELLAR_NETWORK,
+            "contract_id": settings.STELLAR_CONTRACT_ID,
+            "latest_ledger_sequence": latest_ledger,
+            "has_signer_key": bool(settings.STELLAR_SECRET_KEY)
+        }
+        if stellar_status != "UP":
+            overall_status = "degraded"
+    except Exception as e:
+        components["stellar"] = {
+            "status": "DOWN",
+            "network": settings.STELLAR_NETWORK,
+            "contract_id": settings.STELLAR_CONTRACT_ID,
+            "error": str(e)
+        }
+        overall_status = "degraded"
+
+    # 5. Probe Cache (Redis or In-Memory)
     cache_stats = cache_service.get_stats()
     components["cache"] = {
         "status": "UP",
@@ -172,7 +221,7 @@ async def readiness_check():
         "entries": cache_stats["memory_cache_entries"]
     }
 
-    # 3. Circuit Breaker States
+    # 6. Circuit Breaker States
     components["circuit_breakers"] = {
         "market_data": market_circuit_breaker.get_status(),
         "news_api": news_circuit_breaker.get_status(),
@@ -182,10 +231,8 @@ async def readiness_check():
     if any(b["state"] == "OPEN" for b in components["circuit_breakers"].values()):
         overall_status = "degraded"
 
-    # 4. Background Job Queue Stats
+    # 7. Background Job Queue & News Worker
     components["job_queue"] = job_queue.get_stats()
-
-    # 5. News Ingestion Worker Status
     components["news_worker"] = news_ingestion_worker.get_status()
 
     return {

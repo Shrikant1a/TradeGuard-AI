@@ -1,30 +1,39 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, Field
+from typing import Optional, List
 from backend.app.services.paper_trading import paper_trading_service
+from backend.app.services.market_data import MarketDataProvider
 
 router = APIRouter(prefix="/api/paper-trades", tags=["Paper Trading"])
+market_provider = MarketDataProvider.get_instance()
 
 class PaperTradeRequest(BaseModel):
-    symbol: str
-    side: str # BUY, SELL
-    quantity: float
-    price: float
-    stop_loss: Optional[float] = None
-    take_profit: Optional[float] = None
+    symbol: str = Field(..., description="Asset ticker symbol, e.g. AAPL, NVDA, RELIANCE.NS")
+    side: str = Field(..., description="BUY or SELL")
+    quantity: float = Field(..., gt=0, description="Order quantity (must be strictly positive)")
+    price: Optional[float] = Field(None, gt=0, description="Execution price (defaults to live market price if omitted)")
+    stop_loss: Optional[float] = Field(None, description="Mandatory protective stop loss price")
+    take_profit: Optional[float] = Field(None, description="Profit target price")
 
 @router.post("")
 async def create_paper_trade(req: PaperTradeRequest):
     """
     Submits a paper trade order.
-    The order is first validated by the dedicated TradeGuard Risk Engine.
-    If the order exceeds risk parameters, it is BLOCKED and logged.
+    The order is validated server-side by the dedicated TradeGuard Risk Engine.
+    If the order violates any risk policies or balance constraints, it is BLOCKED/REJECTED
+    and logged with the exact reasons.
     """
+    sym = req.symbol.upper().strip()
+    exec_price = req.price
+    if exec_price is None or exec_price <= 0:
+        quote = await market_provider.get_current_quote(sym)
+        exec_price = float(quote.get("price", 100.0))
+
     result = await paper_trading_service.execute_trade(
-        symbol=req.symbol,
+        symbol=sym,
         side=req.side,
         quantity=req.quantity,
-        price=req.price,
+        price=exec_price,
         stop_loss=req.stop_loss,
         take_profit=req.take_profit
     )

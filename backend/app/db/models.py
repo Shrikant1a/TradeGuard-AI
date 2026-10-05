@@ -349,7 +349,7 @@ class BlockchainRecord(Base):
     __tablename__ = "blockchain_records"
 
     id = Column(Integer, primary_key=True, index=True)
-    signal_id = Column(Integer, ForeignKey("signals.id"), nullable=False, unique=True)
+    signal_id = Column(Integer, ForeignKey("signals.id"), nullable=True, unique=True)
     signal_code = Column(String(50), index=True, nullable=False)
     asset_symbol = Column(String(20), nullable=False)
     signal_type = Column(String(10), nullable=False)
@@ -360,11 +360,12 @@ class BlockchainRecord(Base):
     model_version = Column(String(50), nullable=False)
     risk_level = Column(String(20), nullable=False)
     
-    stellar_tx_hash = Column(String(128), unique=True, index=True, nullable=False)
+    stellar_tx_hash = Column(String(128), index=True, nullable=True)
     stellar_contract_id = Column(String(100), nullable=False)
-    stellar_ledger_seq = Column(Integer, default=5281903)
+    stellar_ledger_seq = Column(Integer, nullable=True, default=None)
     network = Column(String(20), default="TESTNET")
-    verification_status = Column(String(20), default="VERIFIED") # VERIFIED, PENDING, FAILED
+    verification_status = Column(String(20), default="PENDING") # VERIFIED, PENDING, FAILED
+    explorer_url = Column(String(255), nullable=True)
     verified_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     __table_args__ = (

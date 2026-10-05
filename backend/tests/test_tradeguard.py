@@ -117,9 +117,12 @@ def test_backtesting_simulation():
 
 @pytest.mark.asyncio
 async def test_stellar_soroban_record_and_verify():
-    sig_code = "TG-TEST-99"
+    import os, time
+    testnet_key = os.getenv("STELLAR_SECRET_KEY", "SCLF6MB4JZNDADKEX2BUDXIMF2AJBB6CMAFAZ77XWZF56OEKTDKVAHOT")
+    stellar_service.secret_key = testnet_key
+    sig_code = f"TG-TEST-{int(time.time()) % 100000}"
     asset = "AAPL"
-    sig_hash = stellar_service.generate_sha256("test-signal-payload-2026")
+    sig_hash = stellar_service.generate_sha256(f"test-signal-payload-{sig_code}")
     
     record = await stellar_service.record_signal_on_chain(
         signal_code=sig_code,

@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { X, CheckCircle2, XCircle, Link2, ExternalLink, ShieldCheck, Copy, Check } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { X, CheckCircle2, XCircle, Link2, ExternalLink, ShieldCheck, Copy, Check, RefreshCw } from "lucide-react";
 import { api } from "@/lib/api";
 
 interface BlockchainVerifyModalProps {
@@ -20,33 +20,30 @@ export function BlockchainVerifyModal({
   const [verificationResult, setVerificationResult] = useState<any>(null);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    if (!isOpen || !signalCode || !signalHash) return;
-
-    let isMounted = true;
+  const performVerification = useCallback(() => {
+    if (!signalCode || !signalHash) return;
     setLoading(true);
 
     api.verifySignalOnChain(signalCode, signalHash)
       .then((res) => {
-        if (isMounted) setVerificationResult(res);
+        setVerificationResult(res);
       })
       .catch((err) => {
-        if (isMounted) {
-          setVerificationResult({
-            is_verified: false,
-            error: err.message,
-            verification_status: "UNVERIFIED"
-          });
-        }
+        setVerificationResult({
+          is_verified: false,
+          error: err.message,
+          verification_status: "FAILED"
+        });
       })
       .finally(() => {
-        if (isMounted) setLoading(false);
+        setLoading(false);
       });
+  }, [signalCode, signalHash]);
 
-    return () => {
-      isMounted = false;
-    };
-  }, [isOpen, signalCode, signalHash]);
+  useEffect(() => {
+    if (!isOpen || !signalCode || !signalHash) return;
+    performVerification();
+  }, [isOpen, signalCode, signalHash, performVerification]);
 
   if (!isOpen) return null;
 
@@ -56,7 +53,11 @@ export function BlockchainVerifyModal({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const isVerified = verificationResult?.is_verified;
+  const isVerified = verificationResult?.is_verified === true && verificationResult?.verification_status === "VERIFIED";
+  const isPending = verificationResult?.verification_status === "PENDING";
+  const realTxHash = verificationResult?.stellar_tx_hash;
+  const explorerUrl = verificationResult?.explorer_url || (realTxHash ? `https://stellar.expert/explorer/testnet/tx/${realTxHash}` : null);
+  const contractId = verificationResult?.contract_id || "CAKWQF4XR6QHLSOWHSS7YOU5Z5VTEDUBPT3C37JVDOFWUPQKPWPU53SO";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -92,21 +93,31 @@ export function BlockchainVerifyModal({
               <div className={`p-4 rounded-xl border flex items-center gap-3.5 ${
                 isVerified 
                   ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                  : "bg-rose-500/10 border-rose-500/30 text-rose-300"
+                  : isPending
+                    ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                    : "bg-rose-500/10 border-rose-500/30 text-rose-300"
               }`}>
                 {isVerified ? (
                   <CheckCircle2 className="w-7 h-7 text-emerald-400 shrink-0" />
+                ) : isPending ? (
+                  <RefreshCw className="w-7 h-7 text-amber-400 shrink-0 animate-spin" />
                 ) : (
                   <XCircle className="w-7 h-7 text-rose-400 shrink-0" />
                 )}
                 <div>
                   <div className="text-sm font-bold uppercase tracking-wider">
-                    {isVerified ? "Cryptographically Verified On-Chain ✓" : "Verification Failed"}
+                    {isVerified 
+                      ? "Cryptographically Verified On-Chain ✓" 
+                      : isPending
+                        ? "Verification Pending Confirmation"
+                        : "On-Chain Verification Failed"}
                   </div>
                   <div className="text-xs opacity-90 mt-0.5">
                     {isVerified 
-                      ? "The off-chain decision hash perfectly matches the immutable record registered on Stellar."
-                      : "The supplied signal hash does not match the registered on-chain contract state."
+                      ? "The off-chain decision hash perfectly matches the immutable record registered on Stellar Soroban."
+                      : isPending
+                        ? "Transaction is submitted or awaiting confirmation on Stellar Testnet."
+                        : (verificationResult?.message || "The supplied signal hash does not match the registered on-chain contract state.")
                     }
                   </div>
                 </div>
@@ -115,7 +126,7 @@ export function BlockchainVerifyModal({
               {/* Technical Hash Details */}
               <div className="space-y-2.5 text-xs">
                 <div>
-                  <span className="text-slate-400 block mb-1">Signal Payload Hash (SHA-256):</span>
+                  <span className="text-slate-400 block mb-1">Canonical Signal Hash (SHA-256):</span>
                   <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 font-mono text-[11px] text-cyan-300 break-all flex items-center justify-between">
                     <span>{signalHash}</span>
                     <button onClick={() => handleCopy(signalHash)} className="p-1 hover:text-white text-slate-400">
@@ -134,7 +145,7 @@ export function BlockchainVerifyModal({
                   <div>
                     <span className="text-slate-400 block mb-1">Ledger Sequence:</span>
                     <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 font-mono text-purple-300">
-                      #{verificationResult?.stellar_ledger_seq || "5281903"}
+                      {verificationResult?.stellar_ledger_seq ? `#${verificationResult.stellar_ledger_seq}` : "Pending"}
                     </div>
                   </div>
                 </div>
@@ -142,14 +153,14 @@ export function BlockchainVerifyModal({
                 <div>
                   <span className="text-slate-400 block mb-1">Stellar Transaction Hash:</span>
                   <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 font-mono text-[11px] text-slate-300 break-all">
-                    {verificationResult?.stellar_tx_hash || "0x7F83B1657FF1FC53B92DC18148A1D65DFC2D4B1FA3D677284ADDD200126D9069"}
+                    {realTxHash || "None recorded yet"}
                   </div>
                 </div>
 
                 <div>
-                  <span className="text-slate-400 block mb-1">Soroban Smart Contract:</span>
+                  <span className="text-slate-400 block mb-1">Soroban Smart Contract ID:</span>
                   <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 font-mono text-[11px] text-slate-400 truncate">
-                    CCQJ2T75A2P2K4OQYZ6U3KBLQ6F364S432UYP3N75Z3Z5OQYZ6U3KBLQ
+                    {contractId}
                   </div>
                 </div>
               </div>
@@ -157,12 +168,30 @@ export function BlockchainVerifyModal({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-slate-800 bg-slate-900/50 flex items-center justify-between text-xs">
-          <span className="text-slate-400 text-[11px]">TradeGuard Audit Protocol</span>
+        {/* Footer with Real Explorer and On-Chain Verification Actions */}
+        <div className="p-4 border-t border-slate-800 bg-slate-900/50 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={performVerification}
+              disabled={loading}
+              className="px-3 py-1.5 rounded-lg bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 font-semibold text-xs flex items-center gap-1.5 transition-colors border border-purple-500/40"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Verify On-Chain
+            </button>
+            {explorerUrl && (
+              <a
+                href={explorerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-300 font-semibold text-xs flex items-center gap-1.5 transition-colors border border-cyan-500/30"
+              >
+                <ExternalLink className="w-3.5 h-3.5" /> View on Stellar Explorer
+              </a>
+            )}
+          </div>
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs"
+            className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs"
           >
             Close Inspector
           </button>

@@ -21,3 +21,4 @@ yfinance>=0.2.37
 requests>=2.31.0
 redis>=5.0.0
 asyncpg>=0.29.0
+stellar-sdk>=16.0.0

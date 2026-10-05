@@ -114,6 +114,10 @@ async def get_news_feed(
     start_idx = (page - 1) * limit
     paginated = grouped[start_idx : start_idx + limit]
 
+    active_provider = NewsProviderFactory.get_provider()
+    provider_name = active_provider.__class__.__name__
+    is_live = provider_name in ["AlphaVantageNewsProvider", "GNewsProvider"]
+
     return {
         "articles": paginated,
         "total_count": total_count,
@@ -121,6 +125,9 @@ async def get_news_feed(
         "limit": limit,
         "total_pages": max(1, (total_count + limit - 1) // limit),
         "is_stale": is_stale,
+        "provider": provider_name,
+        "is_live": is_live,
+        "status_message": "Live news feed active" if is_live else "Live news temporarily unavailable (API credentials pending). Curated educational archive displayed.",
         "last_updated": datetime.datetime.utcnow().isoformat() + "Z"
     }
 

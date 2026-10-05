@@ -4,7 +4,7 @@ import httpx
 import sys
 import pytest
 
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = ""
 
 @pytest.mark.asyncio
 async def test_health_endpoint(client: httpx.AsyncClient):

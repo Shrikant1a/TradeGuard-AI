@@ -18,6 +18,7 @@ class RiskCheckResult(BaseModel):
     allowed: bool
     status: str # APPROVED, BLOCKED
     blocking_reasons: List[str]
+    reasons: List[str] = []
     warnings: List[str]
     risk_amount: float
     risk_percentage: float
@@ -165,6 +166,7 @@ class RiskEngine:
             allowed=allowed,
             status="APPROVED" if allowed else "BLOCKED",
             blocking_reasons=blocking_reasons,
+            reasons=blocking_reasons,
             warnings=warnings,
             risk_amount=round(risk_amount, 2),
             risk_percentage=round(risk_percentage, 2),

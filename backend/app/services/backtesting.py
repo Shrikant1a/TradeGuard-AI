@@ -181,8 +181,10 @@ class BacktestingEngine:
         # Close position if still open on last day
         if position is not None:
             last_price = close_series[-1]
-            gross_revenue = position["qty"] * last_price
-            net_pnl = gross_revenue - position["cost_basis"]
+            exit_price = last_price * (1.0 - self.slippage)
+            gross_revenue = position["qty"] * exit_price
+            total_comm = (position["cost_basis"] + gross_revenue) * self.commission
+            net_pnl = gross_revenue - position["cost_basis"] - total_comm
             capital += position["cost_basis"] + net_pnl
             trades.append({
                 "trade_id": len(trades) + 1,
@@ -191,7 +193,7 @@ class BacktestingEngine:
                 "entry_date": position["entry_date"],
                 "exit_date": dates[-1],
                 "entry_price": round(position["entry_price"], 2),
-                "exit_price": round(last_price, 2),
+                "exit_price": round(exit_price, 2),
                 "quantity": round(position["qty"], 2),
                 "pnl": round(net_pnl, 2),
                 "pnl_pct": round((net_pnl / position["cost_basis"]) * 100, 2),
@@ -215,7 +217,7 @@ class BacktestingEngine:
         if len(daily_returns) > 5 and np.std(daily_returns) > 1e-9:
             sharpe = (np.mean(daily_returns) * 252 - 0.05) / (np.std(daily_returns) * np.sqrt(252))
         else:
-            sharpe = 1.15
+            sharpe = 0.0
 
         # Monthly return aggregations
         monthly_returns = self._calculate_monthly_returns(equity_curve)
@@ -238,7 +240,8 @@ class BacktestingEngine:
             "equity_curve": equity_curve[::max(1, len(equity_curve)//50)], # sample points for UI charts
             "trade_history": trades[-20:], # recent 20 trades
             "monthly_returns": monthly_returns,
-            "disclaimer": "Historical backtesting accounts for slippage and commissions. Past model performance is strictly non-indicative of future returns."
+            "is_simulation": True,
+            "disclaimer": "Historical backtesting simulation. Past performance is strictly non-indicative of future returns."
         }
 
     def _calculate_monthly_returns(self, equity_curve: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
