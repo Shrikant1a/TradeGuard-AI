@@ -26,7 +26,7 @@ async def get_market_indices():
     NIFTY 50, SENSEX, NIFTY BANK, NIFTY IT, NIFTY MIDCAP 100, NIFTY NEXT 50.
     """
     results: List[Dict[str, Any]] = []
-    for idx_name in ["NIFTY 50", "SENSEX", "NIFTY BANK", "NIFTY IT"]:
+    for idx_name in ["NIFTY 50", "SENSEX", "NIFTY BANK", "NIFTY IT", "NIFTY MIDCAP 100", "NIFTY NEXT 50"]:
         try:
             quote = await market_provider.get_current_quote(idx_name)
             idx_info = INDIAN_INDICES_REGISTRY.get(idx_name, {})
@@ -108,5 +108,6 @@ async def get_market_data(
         "status_message": meta.get("status_message", quote.get("status_message", "Market data active")),
         "quote": quote,
         "candles": candles,
+        "bars": candles,
         "total_bars": len(candles)
     }

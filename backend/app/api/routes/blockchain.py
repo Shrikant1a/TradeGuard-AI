@@ -23,7 +23,7 @@ async def list_blockchain_records():
         if on_chain_sig:
             rec = {
                 "signal_code": "TG-1042",
-                "asset": on_chain_sig.get("asset", "AAPL"),
+                "asset": on_chain_sig.get("asset", "RELIANCE"),
                 "signal_type": on_chain_sig.get("signal_type", "BUY"),
                 "timestamp": on_chain_sig.get("timestamp", 1727712000),
                 "timestamp_iso": "2026-09-30T16:00:00Z",

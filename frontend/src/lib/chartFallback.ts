@@ -345,6 +345,7 @@ export function generateFallbackMarketData(rawSymbol: string, timeframe: string 
     period,
     quote: chartRes.quote,
     candles: chartRes.candles,
+    bars: chartRes.candles,
     total_bars: chartRes.candles.length,
     is_fallback: true,
   };

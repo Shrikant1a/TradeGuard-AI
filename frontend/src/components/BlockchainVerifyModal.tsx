@@ -54,7 +54,11 @@ export function BlockchainVerifyModal({
   };
 
   const isVerified = verificationResult?.is_verified === true && verificationResult?.verification_status === "VERIFIED";
-  const isPending = verificationResult?.verification_status === "PENDING";
+  const isBlocked = verificationResult?.verification_status === "BLOCKED" ||
+                    verificationResult?.verification_status === "BLOCKED — EXTERNAL DEPENDENCY" ||
+                    Boolean(verificationResult?.submission_error?.includes("STELLAR_SECRET_KEY")) ||
+                    Boolean(verificationResult?.error?.includes("STELLAR_SECRET_KEY"));
+  const isPending = !isVerified && !isBlocked && (verificationResult?.verification_status === "PENDING" || verificationResult?.verification_status === "SUBMITTED");
   const realTxHash = verificationResult?.stellar_tx_hash;
   const explorerUrl = verificationResult?.explorer_url || (realTxHash ? `https://stellar.expert/explorer/testnet/tx/${realTxHash}` : null);
   const contractId = verificationResult?.contract_id || "CAKWQF4XR6QHLSOWHSS7YOU5Z5VTEDUBPT3C37JVDOFWUPQKPWPU53SO";
@@ -93,12 +97,16 @@ export function BlockchainVerifyModal({
               <div className={`p-4 rounded-xl border flex items-center gap-3.5 ${
                 isVerified 
                   ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                  : isPending
-                    ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
-                    : "bg-rose-500/10 border-rose-500/30 text-rose-300"
+                  : isBlocked
+                    ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-300"
+                    : isPending
+                      ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                      : "bg-rose-500/10 border-rose-500/30 text-rose-300"
               }`}>
                 {isVerified ? (
                   <CheckCircle2 className="w-7 h-7 text-emerald-400 shrink-0" />
+                ) : isBlocked ? (
+                  <ShieldCheck className="w-7 h-7 text-indigo-400 shrink-0" />
                 ) : isPending ? (
                   <RefreshCw className="w-7 h-7 text-amber-400 shrink-0 animate-spin" />
                 ) : (
@@ -108,16 +116,20 @@ export function BlockchainVerifyModal({
                   <div className="text-sm font-bold uppercase tracking-wider">
                     {isVerified 
                       ? "Cryptographically Verified On-Chain ✓" 
-                      : isPending
-                        ? "Verification Pending Confirmation"
-                        : "On-Chain Verification Failed"}
+                      : isBlocked
+                        ? "BLOCKED — EXTERNAL DEPENDENCY"
+                        : isPending
+                          ? "Verification Pending Confirmation"
+                          : "On-Chain Verification Failed"}
                   </div>
                   <div className="text-xs opacity-90 mt-0.5">
                     {isVerified 
                       ? "The off-chain decision hash perfectly matches the immutable record registered on Stellar Soroban."
-                      : isPending
-                        ? "Transaction is submitted or awaiting confirmation on Stellar Testnet."
-                        : (verificationResult?.message || "The supplied signal hash does not match the registered on-chain contract state.")
+                      : isBlocked
+                        ? "Stellar Testnet signer secret key is required for live on-chain submission. Canonical hash is verified locally."
+                        : isPending
+                          ? "Transaction is submitted or awaiting confirmation on Stellar Testnet."
+                          : (verificationResult?.message || "The supplied signal hash does not match the registered on-chain contract state.")
                     }
                   </div>
                 </div>

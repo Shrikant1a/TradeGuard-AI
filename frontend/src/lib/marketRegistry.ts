@@ -65,6 +65,30 @@ export const INDIAN_BENCHMARK_INDICES: MarketAsset[] = [
     tradingviewSymbol: "NSE:CNXIT",
     providerSymbol: "^CNXIT",
     basePrice: 42100.00
+  },
+  {
+    symbol: "NIFTY MIDCAP 100",
+    name: "NIFTY Midcap 100 Index",
+    exchange: "NSE",
+    market: "India",
+    currency: "INR",
+    currencySymbol: "₹",
+    sector: "Midcap Index",
+    tradingviewSymbol: "NSE:NIFTYMIDCAP100",
+    providerSymbol: "NIFTY_MIDCAP_100.NS",
+    basePrice: 58900.00
+  },
+  {
+    symbol: "NIFTY NEXT 50",
+    name: "NIFTY Next 50 Index",
+    exchange: "NSE",
+    market: "India",
+    currency: "INR",
+    currencySymbol: "₹",
+    sector: "Large-Mid Index",
+    tradingviewSymbol: "NSE:NIFTYNEXT50",
+    providerSymbol: "NIFTYNEXT50.NS",
+    basePrice: 72400.00
   }
 ];
 
@@ -260,6 +284,42 @@ export const TOP_INDIAN_EQUITIES: MarketAsset[] = [
     tradingviewSymbol: "NSE:SUNPHARMA",
     providerSymbol: "SUNPHARMA.NS",
     basePrice: 1890.00
+  },
+  {
+    symbol: "AXISBANK",
+    name: "Axis Bank Ltd.",
+    exchange: "NSE",
+    market: "India",
+    currency: "INR",
+    currencySymbol: "₹",
+    sector: "Banking & Financial Services",
+    tradingviewSymbol: "NSE:AXISBANK",
+    providerSymbol: "AXISBANK.NS",
+    basePrice: 1190.00
+  },
+  {
+    symbol: "HINDUNILVR",
+    name: "Hindustan Unilever Ltd.",
+    exchange: "NSE",
+    market: "India",
+    currency: "INR",
+    currencySymbol: "₹",
+    sector: "Consumer Goods (FMCG)",
+    tradingviewSymbol: "NSE:HINDUNILVR",
+    providerSymbol: "HINDUNILVR.NS",
+    basePrice: 2720.00
+  },
+  {
+    symbol: "ADANIENT",
+    name: "Adani Enterprises Ltd.",
+    exchange: "NSE",
+    market: "India",
+    currency: "INR",
+    currencySymbol: "₹",
+    sector: "Diversified Conglomerate",
+    tradingviewSymbol: "NSE:ADANIENT",
+    providerSymbol: "ADANIENT.NS",
+    basePrice: 3120.00
   }
 ];
 

@@ -33,7 +33,16 @@ import { SplashIntroScreen } from "@/components/SplashIntroScreen";
 import { HowToUseGuide } from "@/components/HowToUseGuide";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FALLBACK_ARTICLES } from "@/lib/fallbackNewsData";
-import { FALLBACK_ALERTS } from "@/lib/fallbackPlatformData";
+import {
+  FALLBACK_ALERTS,
+  FALLBACK_SIGNALS,
+  FALLBACK_PORTFOLIO,
+  FALLBACK_SCANNER,
+  FALLBACK_RISK_POLICY,
+  FALLBACK_BLOCKCHAIN_RECORDS,
+  FALLBACK_STRATEGIES,
+  FALLBACK_WEBHOOKS,
+} from "@/lib/fallbackPlatformData";
 import { generateFallbackAnalysis, generateFallbackMarketData } from "@/lib/chartFallback";
 import { formatCurrency, formatIndianNumber } from "@/lib/currency";
 import { resolveClientTradingViewSymbol, INDIAN_STOCKS, INDIAN_INDICES } from "@/lib/marketRegistry";
@@ -51,10 +60,20 @@ const POPULAR_ASSETS = [
   { symbol: "LT", name: "Larsen & Toubro", exchange: "NSE", sector: "Engineering", market: "India" },
   { symbol: "BHARTIARTL", name: "Bharti Airtel", exchange: "NSE", sector: "Telecom", market: "India" },
   { symbol: "MARUTI", name: "Maruti Suzuki India", exchange: "NSE", sector: "Automotive", market: "India" },
+  { symbol: "AXISBANK", name: "Axis Bank Ltd.", exchange: "NSE", sector: "Banking", market: "India" },
+  { symbol: "KOTAKBANK", name: "Kotak Mahindra Bank", exchange: "NSE", sector: "Banking", market: "India" },
+  { symbol: "WIPRO", name: "Wipro Ltd.", exchange: "NSE", sector: "Technology", market: "India" },
+  { symbol: "HINDUNILVR", name: "Hindustan Unilever", exchange: "NSE", sector: "Consumer", market: "India" },
+  { symbol: "SUNPHARMA", name: "Sun Pharma", exchange: "NSE", sector: "Pharma", market: "India" },
+  { symbol: "TATAMOTORS", name: "Tata Motors", exchange: "NSE", sector: "Automotive", market: "India" },
+  { symbol: "TATASTEEL", name: "Tata Steel", exchange: "NSE", sector: "Metals", market: "India" },
+  { symbol: "ADANIENT", name: "Adani Enterprises", exchange: "NSE", sector: "Conglomerate", market: "India" },
   { symbol: "NIFTY 50", name: "NIFTY 50 Index", exchange: "NSE", sector: "Benchmark Index", market: "India" },
   { symbol: "SENSEX", name: "BSE SENSEX Index", exchange: "BSE", sector: "Benchmark Index", market: "India" },
   { symbol: "NIFTY BANK", name: "NIFTY Bank Index", exchange: "NSE", sector: "Sectoral Index", market: "India" },
   { symbol: "NIFTY IT", name: "NIFTY IT Index", exchange: "NSE", sector: "Sectoral Index", market: "India" },
+  { symbol: "NIFTY MIDCAP 100", name: "NIFTY Midcap 100", exchange: "NSE", sector: "Index", market: "India" },
+  { symbol: "NIFTY NEXT 50", name: "NIFTY Next 50", exchange: "NSE", sector: "Index", market: "India" },
 
   // 🌎 Global Markets & Digital Assets
   { symbol: "AAPL", name: "Apple Inc.", exchange: "NASDAQ", sector: "Technology", market: "US" },
@@ -84,23 +103,38 @@ export default function TradeGuardApp() {
   const [searchSymbol, setSearchSymbol] = useState("RELIANCE");
   const [currentSymbol, setCurrentSymbol] = useState("RELIANCE");
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(() => {
+    if (typeof window !== "undefined") {
+      return !sessionStorage.getItem("tg_splash_dismissed");
+    }
+    return true;
+  });
   // Dedicated chart search state
   const [chartInput, setChartInput] = useState("");
   const [chartSymbol, setChartSymbol] = useState("NSE:RELIANCE");
 
-  // State data from backend
-  const [analysisData, setAnalysisData] = useState<any>(null);
-  const [marketData, setMarketData] = useState<any>(null);
-  const [signalsList, setSignalsList] = useState<any[]>([]);
-  const [portfolioData, setPortfolioData] = useState<any>(null);
-  const [scannerList, setScannerList] = useState<any[]>([]);
+  // State data from backend with instant resilient fallback hydration
+  const [analysisData, setAnalysisData] = useState<any>(() => generateFallbackAnalysis("RELIANCE"));
+  const [marketData, setMarketData] = useState<any>(() => generateFallbackMarketData("RELIANCE"));
+  const [signalsList, setSignalsList] = useState<any[]>(() => FALLBACK_SIGNALS);
+  const [portfolioData, setPortfolioData] = useState<any>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("tradeguard_portfolio");
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {}
+      }
+    }
+    return FALLBACK_PORTFOLIO;
+  });
+  const [scannerList, setScannerList] = useState<any[]>(() => FALLBACK_SCANNER);
   const [backtestResult, setBacktestResult] = useState<any>(null);
-  const [riskPolicy, setRiskPolicy] = useState<any>(null);
+  const [riskPolicy, setRiskPolicy] = useState<any>(() => FALLBACK_RISK_POLICY);
   const [alertsList, setAlertsList] = useState<any[]>(() => FALLBACK_ALERTS);
-  const [blockchainRecords, setBlockchainRecords] = useState<any>(null);
-  const [strategiesList, setStrategiesList] = useState<any[]>([]);
-  const [webhookLogs, setWebhookLogs] = useState<any[]>([]);
+  const [blockchainRecords, setBlockchainRecords] = useState<any>(() => FALLBACK_BLOCKCHAIN_RECORDS);
+  const [strategiesList, setStrategiesList] = useState<any[]>(() => FALLBACK_STRATEGIES);
+  const [webhookLogs, setWebhookLogs] = useState<any[]>(() => FALLBACK_WEBHOOKS);
 
   // News Intelligence state
   const [dashboardNews, setDashboardNews] = useState<any[]>(() => FALLBACK_ARTICLES.slice(0, 3));
@@ -322,7 +356,7 @@ export default function TradeGuardApp() {
       const tvSym = resolveTVSymbol(cleanSym);
       setChartSymbol(tvSym);
     } catch {
-      setChartSymbol(`NASDAQ:${cleanSym}`);
+      setChartSymbol(`NSE:${cleanSym}`);
     }
     // Switch to Dashboard or Analyzer view so the user immediately sees the analysis
     if (activeTab !== "dashboard" && activeTab !== "analyzer" && activeTab !== "asset_details" && activeTab !== "chart") {
@@ -380,7 +414,7 @@ export default function TradeGuardApp() {
       setWebhookStatus(null);
       const payload = {
         symbol: currentSymbol,
-        price: analysisData?.metrics?.close || 224.23,
+        price: analysisData?.metrics?.close || analysisData?.metrics?.price || 2850.50,
         volume: 38400000,
         time: new Date().toISOString(),
         signal: "BUY",
@@ -456,8 +490,16 @@ export default function TradeGuardApp() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#080c14] text-slate-100 font-sans">
-      {/* ── Cinematic Animated Intro Splash Screen ── */}
-      {showSplash && <SplashIntroScreen onComplete={() => setShowSplash(false)} />}
+      {showSplash && (
+        <SplashIntroScreen
+          onComplete={() => {
+            setShowSplash(false);
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("tg_splash_dismissed", "true");
+            }
+          }}
+        />
+      )}
 
       {/* ── Mobile Backdrop Overlay ── */}
       {isMobileNavOpen && (

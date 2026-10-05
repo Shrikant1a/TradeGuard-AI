@@ -25,7 +25,7 @@ export function AIMarketIntelligenceBanner({
 
   React.useEffect(() => {
     if (!data || !data.signal) {
-      const timer = setTimeout(() => setTimedOut(true), 7000);
+      const timer = setTimeout(() => setTimedOut(true), 2500);
       return () => clearTimeout(timer);
     } else {
       setTimedOut(false);
@@ -38,7 +38,7 @@ export function AIMarketIntelligenceBanner({
         <div className="glass-panel p-6 rounded-xl border border-amber-500/30 bg-amber-500/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-300">
           <div className="flex items-center gap-3">
             <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
-            <span className="text-sm">AI market intelligence is temporarily unavailable. Please try again.</span>
+            <span className="text-sm">Unable to load live AI intelligence. Fallback calibration ready.</span>
           </div>
           {onRefresh && (
             <button
@@ -46,7 +46,7 @@ export function AIMarketIntelligenceBanner({
                 setTimedOut(false);
                 onRefresh();
               }}
-              className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+              className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5" /> Retry Analysis
             </button>
@@ -55,8 +55,9 @@ export function AIMarketIntelligenceBanner({
       );
     }
     return (
-      <div className="glass-panel p-6 rounded-xl animate-pulse flex items-center justify-center text-slate-400">
-        Loading AI Market Intelligence...
+      <div className="glass-panel p-6 rounded-xl border border-cyan-500/20 bg-slate-900/60 flex items-center justify-center gap-3 text-slate-300 text-sm">
+        <RefreshCw className="w-4 h-4 animate-spin text-cyan-400" />
+        <span>Loading AI Market Intelligence...</span>
       </div>
     );
   }

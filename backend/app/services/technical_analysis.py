@@ -142,6 +142,8 @@ class TechnicalAnalysisService:
 
         return {
             "close": round(c, 2),
+            "current_price": round(c, 2),
+            "price": round(c, 2),
             "sma_20": round(float(latest["sma_20"]), 2),
             "sma_50": round(sma50, 2),
             "sma_200": round(sma200, 2),

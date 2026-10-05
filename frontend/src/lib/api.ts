@@ -18,11 +18,13 @@ import { generateFallbackAnalysis, generateFallbackMarketData } from "./chartFal
 
 const DEFAULT_BACKEND = "http://127.0.0.1:8000";
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL !== undefined
+  process.env.NEXT_PUBLIC_API_URL !== undefined && process.env.NEXT_PUBLIC_API_URL !== ""
     ? process.env.NEXT_PUBLIC_API_URL
-    : typeof window !== "undefined"
-      ? ""
-      : DEFAULT_BACKEND;
+    : process.env.NEXT_PUBLIC_API_BASE_URL !== undefined && process.env.NEXT_PUBLIC_API_BASE_URL !== ""
+      ? process.env.NEXT_PUBLIC_API_BASE_URL
+      : typeof window !== "undefined"
+        ? ""
+        : DEFAULT_BACKEND;
 
 // In-flight promise deduplication map to prevent parallel identical requests
 const inFlightRequests = new Map<string, Promise<any>>();
@@ -33,6 +35,7 @@ const clientCache = new Map<string, { data: any; expiresAt: number }>();
 export interface FetchOptions extends RequestInit {
   cacheTtlMs?: number; // Cache duration in milliseconds (0 = no cache)
   skipDedup?: boolean;
+  timeoutMs?: number; // Request timeout in milliseconds
 }
 
 export async function fetchApi<T>(
@@ -60,13 +63,19 @@ export async function fetchApi<T>(
 
   const fetchPromise = (async (): Promise<T> => {
     try {
+      const timeoutMs = options?.timeoutMs ?? 6000;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
       const res = await fetch(primaryUrl, {
         ...options,
+        signal: options?.signal || controller.signal,
         headers: {
           "Content-Type": "application/json",
           ...(options?.headers || {}),
         },
       });
+      clearTimeout(timeoutId);
 
       if (res.status === 429) {
         const err = await res.json().catch(() => ({}));
@@ -160,17 +169,29 @@ export const api = {
       return await fetchApi<any[]>(`/api/assets?q=${encodeURIComponent(q)}`, { cacheTtlMs: 60000 });
     } catch {
       const popular = [
-        { symbol: "AAPL", name: "Apple Inc.", exchange: "NASDAQ", sector: "Technology", price: 230.51 },
-        { symbol: "NVDA", name: "NVIDIA Corp.", exchange: "NASDAQ", sector: "Semiconductors", price: 128.50 },
-        { symbol: "TSLA", name: "Tesla Inc.", exchange: "NASDAQ", sector: "Automotive", price: 254.10 },
-        { symbol: "MSFT", name: "Microsoft Corp.", exchange: "NASDAQ", sector: "Technology", price: 448.90 },
-        { symbol: "GOOGL", name: "Alphabet Inc.", exchange: "NASDAQ", sector: "Communication", price: 182.15 },
-        { symbol: "AMZN", name: "Amazon.com", exchange: "NASDAQ", sector: "Consumer Cyclical", price: 186.40 },
-        { symbol: "BTC-USD", name: "Bitcoin USD", exchange: "Crypto", sector: "Cryptocurrency", price: 94150.00 },
-        { symbol: "ETH-USD", name: "Ethereum USD", exchange: "Crypto", sector: "Cryptocurrency", price: 2680.00 },
-        { symbol: "RELIANCE.NS", name: "Reliance Industries", exchange: "NSE", sector: "Energy", price: 2980.50 },
-        { symbol: "TCS.NS", name: "Tata Consultancy Services", exchange: "NSE", sector: "Technology", price: 4250.00 },
-        { symbol: "INFY.NS", name: "Infosys", exchange: "NSE", sector: "Technology", price: 1890.00 },
+        // 🇮🇳 India-First (NSE/BSE)
+        { symbol: "RELIANCE", name: "Reliance Industries", exchange: "NSE", sector: "Energy", price: 2980.50, currency: "INR" },
+        { symbol: "TCS", name: "Tata Consultancy Services", exchange: "NSE", sector: "Technology", price: 4250.00, currency: "INR" },
+        { symbol: "INFY", name: "Infosys Ltd.", exchange: "NSE", sector: "Technology", price: 1890.00, currency: "INR" },
+        { symbol: "HDFCBANK", name: "HDFC Bank Ltd.", exchange: "NSE", sector: "Banking", price: 1720.50, currency: "INR" },
+        { symbol: "ICICIBANK", name: "ICICI Bank Ltd.", exchange: "NSE", sector: "Banking", price: 1280.75, currency: "INR" },
+        { symbol: "SBIN", name: "State Bank of India", exchange: "NSE", sector: "Banking", price: 810.25, currency: "INR" },
+        { symbol: "MARUTI", name: "Maruti Suzuki India", exchange: "NSE", sector: "Automotive", price: 12450.00, currency: "INR" },
+        { symbol: "TATAMOTORS", name: "Tata Motors", exchange: "NSE", sector: "Automotive", price: 980.00, currency: "INR" },
+        { symbol: "ITC", name: "ITC Limited", exchange: "NSE", sector: "Consumer", price: 478.50, currency: "INR" },
+        { symbol: "BHARTIARTL", name: "Bharti Airtel", exchange: "NSE", sector: "Telecom", price: 1680.25, currency: "INR" },
+        { symbol: "LT", name: "Larsen & Toubro", exchange: "NSE", sector: "Engineering", price: 3840.00, currency: "INR" },
+        { symbol: "AXISBANK", name: "Axis Bank Ltd.", exchange: "NSE", sector: "Banking", price: 1180.50, currency: "INR" },
+        { symbol: "WIPRO", name: "Wipro Ltd.", exchange: "NSE", sector: "Technology", price: 545.00, currency: "INR" },
+        { symbol: "SUNPHARMA", name: "Sun Pharma", exchange: "NSE", sector: "Pharma", price: 1920.00, currency: "INR" },
+        { symbol: "ADANIENT", name: "Adani Enterprises", exchange: "NSE", sector: "Conglomerate", price: 2840.00, currency: "INR" },
+        // 🌎 Global / US (secondary)
+        { symbol: "AAPL", name: "Apple Inc.", exchange: "NASDAQ", sector: "Technology", price: 230.51, currency: "USD" },
+        { symbol: "NVDA", name: "NVIDIA Corp.", exchange: "NASDAQ", sector: "Semiconductors", price: 128.50, currency: "USD" },
+        { symbol: "TSLA", name: "Tesla Inc.", exchange: "NASDAQ", sector: "Automotive", price: 254.10, currency: "USD" },
+        { symbol: "MSFT", name: "Microsoft Corp.", exchange: "NASDAQ", sector: "Technology", price: 448.90, currency: "USD" },
+        { symbol: "BTC-USD", name: "Bitcoin USD", exchange: "Crypto", sector: "Cryptocurrency", price: 94150.00, currency: "USD" },
+        { symbol: "ETH-USD", name: "Ethereum USD", exchange: "Crypto", sector: "Cryptocurrency", price: 2680.00, currency: "USD" },
       ];
       if (!q) return popular;
       const lower = q.toLowerCase();
@@ -262,37 +283,282 @@ export const api = {
   getBacktestById: (id: string) => fetchApi<any>(`/api/backtest/${id}`),
 
   // Paper Trading & Portfolio
-  getPortfolio: () =>
-    fetchApi<any>("/api/portfolio")
-      .then((res) => (res && res.total_equity ? res : FALLBACK_PORTFOLIO))
-      .catch(() => FALLBACK_PORTFOLIO),
-  createPaperTrade: (trade: {
+  // Paper Trading & Portfolio with LocalStorage Persistence
+  getPortfolio: async () => {
+    try {
+      const res = await fetchApi<any>("/api/portfolio");
+      if (res && res.total_equity) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("tradeguard_portfolio", JSON.stringify(res));
+        }
+        return res;
+      }
+    } catch {
+      // Check localStorage for persisted portfolio
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("tradeguard_portfolio");
+        if (saved) {
+          try {
+            return JSON.parse(saved);
+          } catch {}
+        }
+      }
+    }
+    return FALLBACK_PORTFOLIO;
+  },
+  createPaperTrade: async (trade: {
     symbol: string;
     side: string;
     quantity: number;
     price: number;
     stop_loss?: number;
     take_profit?: number;
-  }) =>
-    fetchApi<any>("/api/paper-trades", {
-      method: "POST",
-      body: JSON.stringify(trade),
-    }),
+  }) => {
+    try {
+      const res = await fetchApi<any>("/api/paper-trades", {
+        method: "POST",
+        body: JSON.stringify(trade),
+      });
+      if (res && res.portfolio && typeof window !== "undefined") {
+        localStorage.setItem("tradeguard_portfolio", JSON.stringify(res.portfolio));
+      }
+      return res;
+    } catch {
+      // Client-side fallback paper trading execution with strict risk enforcement
+      const sym = trade.symbol.toUpperCase();
+      const side = trade.side.toUpperCase();
+      const qty = Number(trade.quantity) || 1;
+      const price = Number(trade.price) || 1;
+      const stopLoss = Number(trade.stop_loss);
+      const takeProfit = Number(trade.take_profit);
+
+      let portfolio = FALLBACK_PORTFOLIO;
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("tradeguard_portfolio");
+        if (saved) {
+          try { portfolio = JSON.parse(saved); } catch {}
+        }
+      }
+
+      const totalCapital = portfolio.total_equity || 1000000.0;
+      const maxRisk = 0.01 * totalCapital; // ₹10,000 max risk per trade
+      const totalCost = qty * price;
+
+      if (!stopLoss || stopLoss <= 0) {
+        return {
+          success: false,
+          status: "REJECTED",
+          message: "Mandatory stop-loss rule violated: Order must include a predefined stop-loss price.",
+          reasons: ["Mandatory stop-loss rule violated: Order must include a predefined stop-loss price."],
+        };
+      }
+
+      const riskPerUnit = side === "BUY" ? price - stopLoss : stopLoss - price;
+      if (riskPerUnit <= 0) {
+        return {
+          success: false,
+          status: "REJECTED",
+          message: "Invalid stop-loss orientation for trade side.",
+          reasons: ["Stop-loss must be lower than entry for BUY or higher than entry for SELL."],
+        };
+      }
+
+      const tradeRisk = riskPerUnit * qty;
+      if (tradeRisk > maxRisk) {
+        return {
+          success: false,
+          status: "BLOCKED",
+          allowed: false,
+          message: `Trade blocked by risk-management policy: Total risk amount ₹${tradeRisk.toLocaleString("en-IN")} exceeds the max risk limit of ₹${maxRisk.toLocaleString("en-IN")} (1.00%).`,
+          reasons: [`Risk exceeds 1.0% maximum portfolio risk threshold (₹${maxRisk.toLocaleString("en-IN")}).`],
+        };
+      }
+
+      if (side === "BUY" && totalCost > portfolio.virtual_cash) {
+        return {
+          success: false,
+          status: "REJECTED",
+          message: `Insufficient virtual cash balance: Need ₹${totalCost.toLocaleString("en-IN")}, Available: ₹${portfolio.virtual_cash.toLocaleString("en-IN")}.`,
+          reasons: [`Insufficient virtual cash balance: Need ₹${totalCost.toLocaleString("en-IN")}, Available: ₹${portfolio.virtual_cash.toLocaleString("en-IN")}.`],
+        };
+      }
+
+      const orderId = `ORD-${Date.now()}`;
+      const newPositions = [...(portfolio.positions || [])];
+      let newCash = portfolio.virtual_cash;
+
+      if (side === "BUY") {
+        newCash -= totalCost;
+        const existingIdx = newPositions.findIndex((p: any) => p.symbol === sym);
+        if (existingIdx >= 0) {
+          const ep = newPositions[existingIdx];
+          const newQ = ep.quantity + qty;
+          const avgP = ((ep.entry_price * ep.quantity) + totalCost) / newQ;
+          newPositions[existingIdx] = {
+            ...ep,
+            quantity: newQ,
+            entry_price: Math.round(avgP * 100) / 100,
+            current_price: price,
+            unrealized_pnl: Math.round(newQ * (price - avgP) * 100) / 100,
+          };
+        } else {
+          newPositions.push({
+            id: Date.now(),
+            symbol: sym,
+            side: "BUY",
+            quantity: qty,
+            entry_price: price,
+            current_price: price,
+            unrealized_pnl: 0,
+            pnl_pct: 0,
+            stop_loss: stopLoss,
+            take_profit: takeProfit,
+          });
+        }
+      } else if (side === "SELL") {
+        const existingIdx = newPositions.findIndex((p: any) => p.symbol === sym);
+        if (existingIdx < 0) {
+          return {
+            success: false,
+            status: "REJECTED",
+            message: `Cannot sell ${sym}: No active open position exists for this asset.`,
+            reasons: [`No active position for ${sym} to sell.`],
+          };
+        }
+        newCash += totalCost;
+        newPositions.splice(existingIdx, 1);
+      }
+
+      const newMarketValue = newPositions.reduce((sum: number, p: any) => sum + (p.quantity * (p.current_price || p.entry_price)), 0);
+      const updatedPortfolio = {
+        ...portfolio,
+        virtual_cash: Math.round(newCash * 100) / 100,
+        total_market_value: Math.round(newMarketValue * 100) / 100,
+        total_equity: Math.round((newCash + newMarketValue) * 100) / 100,
+        positions: newPositions,
+      };
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("tradeguard_portfolio", JSON.stringify(updatedPortfolio));
+      }
+
+      return {
+        success: true,
+        status: "EXECUTED",
+        allowed: true,
+        order_id: orderId,
+        message: `Paper trade ${orderId} (${side} ${qty} ${sym} @ ₹${price.toLocaleString("en-IN")}) executed successfully.`,
+        trade: {
+          id: Date.now(),
+          order_id: orderId,
+          symbol: sym,
+          side,
+          quantity: qty,
+          price,
+          status: "EXECUTED",
+          timestamp: new Date().toISOString(),
+          blockchain_tx_hash: null,
+          verification_status: "PENDING",
+        },
+        portfolio: updatedPortfolio,
+      };
+    }
+  },
   getTradeHistory: () =>
     fetchApi<any[]>("/api/paper-trades/history")
       .then((res) => (Array.isArray(res) && res.length > 0 ? res : FALLBACK_PORTFOLIO.positions))
       .catch(() => FALLBACK_PORTFOLIO.positions),
-  resetPaperBalance: () =>
-    fetchApi<any>("/api/paper-trades/reset", {
+  resetPaperBalance: () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("tradeguard_portfolio");
+    }
+    return fetchApi<any>("/api/paper-trades/reset", {
       method: "POST",
-    }),
+    }).catch(() => FALLBACK_PORTFOLIO);
+  },
 
   // Risk Engine
-  checkRisk: (params: any) =>
-    fetchApi<any>("/api/risk/check", {
-      method: "POST",
-      body: JSON.stringify(params),
-    }),
+  checkRisk: async (params: any) => {
+    try {
+      return await fetchApi<any>("/api/risk/check", {
+        method: "POST",
+        body: JSON.stringify(params),
+      });
+    } catch {
+      const totalCapital = params.portfolio_equity || 1000000.0;
+      const maxRiskPerTrade = 0.01 * totalCapital; // 1% = ₹10,000
+      const qty = Number(params.quantity) || 1;
+      const price = Number(params.entry_price) || 1;
+      const stopLoss = Number(params.stop_loss) || 0;
+      const takeProfit = Number(params.take_profit) || 0;
+      const side = (params.side || "BUY").toUpperCase();
+
+      const blockingReasons: string[] = [];
+      const warnings: string[] = [];
+
+      if (qty <= 0) blockingReasons.push("Quantity must be greater than zero.");
+      if (price <= 0) blockingReasons.push("Price must be greater than zero.");
+      if (!stopLoss || stopLoss <= 0) blockingReasons.push("Mandatory stop-loss rule violated: Order must include a predefined stop-loss price.");
+
+      let riskPerUnit = 0;
+      if (stopLoss > 0) {
+        if (side === "BUY") {
+          if (stopLoss >= price) blockingReasons.push("Invalid Stop-Loss: For a BUY trade, stop-loss must be lower than the entry price.");
+          else riskPerUnit = price - stopLoss;
+        } else {
+          if (stopLoss <= price) blockingReasons.push("Invalid Stop-Loss: For a SELL trade, stop-loss must be higher than the entry price.");
+          else riskPerUnit = stopLoss - price;
+        }
+      }
+
+      const totalRisk = riskPerUnit * qty;
+      if (totalRisk > maxRiskPerTrade) {
+        blockingReasons.push(
+          `Trade blocked by risk-management policy: Total risk amount ₹${totalRisk.toLocaleString("en-IN")} exceeds the max risk limit of ₹${maxRiskPerTrade.toLocaleString("en-IN")} (1.00%).`
+        );
+      }
+
+      const posValue = qty * price;
+      if ((posValue / totalCapital) * 100 > 15) {
+        blockingReasons.push(`Position size exceeds 15% maximum single-asset capital allocation.`);
+      }
+
+      const totalExp = (params.current_portfolio_exposure_value || 0) + posValue;
+      if ((totalExp / totalCapital) * 100 > 40) {
+        blockingReasons.push(`Total portfolio market exposure would reach ${((totalExp / totalCapital) * 100).toFixed(1)}%, exceeding the maximum allowed limit of 40.0%.`);
+      }
+
+      let rr = null;
+      if (takeProfit > 0 && riskPerUnit > 0) {
+        const gain = side === "BUY" ? takeProfit - price : price - takeProfit;
+        if (gain <= 0) blockingReasons.push("Invalid Take-Profit: Target price must be in favorable direction of trade.");
+        else {
+          rr = Math.round((gain / riskPerUnit) * 100) / 100;
+          if (rr < 1.0) warnings.push(`Risk/Reward ratio (${rr}:1) is below recommended 1.5:1 minimum.`);
+        }
+      }
+
+      if (params.atr_pct && params.atr_pct > 3.5) {
+        warnings.push(`Asset ATR volatility (${params.atr_pct}%) is elevated. Consider wider risk bracket.`);
+      }
+
+      const allowed = blockingReasons.length === 0;
+      return {
+        allowed,
+        status: allowed ? "APPROVED" : "BLOCKED",
+        blocking_reasons: blockingReasons,
+        reasons: blockingReasons,
+        warnings,
+        risk_amount: totalRisk,
+        risk_percentage: (totalRisk / totalCapital) * 100,
+        max_allowed_risk: maxRiskPerTrade,
+        position_value: posValue,
+        position_pct_of_capital: (posValue / totalCapital) * 100,
+        risk_reward_ratio: rr,
+        suggested_adjusted_quantity: riskPerUnit > 0 ? Math.max(1, Math.floor(maxRiskPerTrade / riskPerUnit)) : null,
+      };
+    }
+  },
   getRiskPolicy: () =>
     fetchApi<any>("/api/risk/policy")
       .then((res) => (res && res.max_portfolio_risk_pct ? res : FALLBACK_RISK_POLICY))
@@ -340,18 +606,18 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }).catch(() => {
-      const sym = (payload?.symbol || "AAPL").toUpperCase();
-      const randomHex = Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
+      const sym = (payload?.symbol || "RELIANCE").toUpperCase();
       return {
-        status: "SUCCESS",
-        message: `TradingView alert for ${sym} processed and verified on Stellar (Live Simulation)`,
+        status: "QUEUED",
+        message: `TradingView alert for ${sym} received. Verification queued for Stellar Testnet submission.`,
         event_id: Date.now(),
-        stellar_tx_hash: randomHex,
+        stellar_tx_hash: null,
+        verification_status: "PENDING",
       };
     }),
 
   // AI Copilot
-  chatWithCopilot: (query: string, symbolContext: string = "AAPL") =>
+  chatWithCopilot: (query: string, symbolContext: string = "RELIANCE") =>
     fetchApi<any>("/api/copilot/chat", {
       method: "POST",
       body: JSON.stringify({ query, symbol_context: symbolContext }),
@@ -503,16 +769,17 @@ export const api = {
       total_articles: 8,
       sentiment_summary: { positive: 6, neutral: 2, negative: 0, overall: "POSITIVE" },
       by_symbol: {
-        AAPL: FALLBACK_ARTICLES.filter((a) => a.symbols.includes("AAPL")),
-        NVDA: FALLBACK_ARTICLES.filter((a) => a.symbols.includes("NVDA")),
-        TSLA: FALLBACK_ARTICLES.filter((a) => a.symbols.includes("TSLA")),
-        MSFT: FALLBACK_ARTICLES.filter((a) => a.symbols.includes("MSFT")),
+        RELIANCE: FALLBACK_ARTICLES.filter((a) => a.symbols?.includes("RELIANCE") || a.symbols?.includes("RELIANCE.NS")),
+        TCS: FALLBACK_ARTICLES.filter((a) => a.symbols?.includes("TCS") || a.symbols?.includes("TCS.NS")),
+        INFY: FALLBACK_ARTICLES.filter((a) => a.symbols?.includes("INFY") || a.symbols?.includes("INFY.NS")),
+        HDFCBANK: FALLBACK_ARTICLES.filter((a) => a.symbols?.includes("HDFCBANK")),
       },
     })),
   getNewsAlerts: () =>
     fetchApi<any[]>("/api/news/alerts").catch(() => [
-      { id: 1, symbol: "AAPL", min_impact: 70.0, sentiment_filter: "ALL", is_active: true },
-      { id: 2, symbol: "NVDA", min_impact: 75.0, sentiment_filter: "NEGATIVE", is_active: true }
+      { id: 1, symbol: "RELIANCE", min_impact: 70.0, sentiment_filter: "ALL", is_active: true },
+      { id: 2, symbol: "TCS", min_impact: 75.0, sentiment_filter: "NEGATIVE", is_active: true },
+      { id: 3, symbol: "INFY", min_impact: 65.0, sentiment_filter: "ALL", is_active: true },
     ]),
   createNewsAlert: (alert: { symbol: string; min_impact: number; sentiment_filter?: string }) =>
     fetchApi<any>("/api/news/alerts", {
@@ -523,8 +790,8 @@ export const api = {
     fetchApi<any>(`/api/news/alerts/${id}`, { method: "DELETE" }).catch(() => ({ status: "deleted", id })),
   getNewsPreferences: () =>
     fetchApi<any>("/api/news/preferences").catch(() => ({
-      preferred_markets: ["US", "IN", "CRYPTO"],
-      watchlist: ["AAPL", "NVDA", "TSLA", "MSFT", "AMZN", "RELIANCE"],
+      preferred_markets: ["IN", "CRYPTO", "US"],
+      watchlist: ["RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK", "SBIN", "ITC", "MARUTI", "TATAMOTORS"],
       news_categories: ["BREAKING", "STOCK", "EARNINGS", "ECONOMY"],
     })),
   updateNewsPreferences: (prefs: any) =>
@@ -535,8 +802,8 @@ export const api = {
   getDailyReport: () =>
     fetchApi<any>("/api/news/report/daily").catch(() => ({
       date: new Date().toISOString().split("T")[0],
-      summary: "Global markets demonstrate sustained resilience following central bank interest rate decisions.",
-      top_gainers: ["AAPL", "NVDA", "BTC"],
+      summary: "Indian markets demonstrate sustained resilience following RBI monetary policy decisions. NSE and BSE indices reflect strong institutional participation.",
+      top_gainers: ["RELIANCE", "TCS", "INFY", "HDFCBANK"],
       risk_outlook: "STABLE"
     })),
 };

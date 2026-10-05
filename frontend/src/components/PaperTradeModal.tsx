@@ -104,9 +104,12 @@ export function PaperTradeModal({
       });
 
       if (res.success) {
+        const txHash = res.trade?.blockchain_tx_hash;
         setExecutionMessage({
           type: "success",
-          text: `Order executed! Stellar Soroban Tx: ${res.trade?.blockchain_tx_hash?.slice(0, 16)}...`
+          text: txHash 
+            ? `Order executed! Stellar Soroban Tx: ${txHash.slice(0, 16)}...`
+            : `Order executed! Paper trade recorded. Stellar testnet receipt queued.`
         });
         if (onTradeExecuted) onTradeExecuted();
         setTimeout(() => {
@@ -116,7 +119,7 @@ export function PaperTradeModal({
       } else {
         setExecutionMessage({
           type: "error",
-          text: res.message || "Trade blocked by risk management policy."
+          text: res.message || (res.reasons ? res.reasons.join(", ") : "Trade blocked by risk management policy.")
         });
       }
     } catch (err: any) {
@@ -285,14 +288,29 @@ export function PaperTradeModal({
                 )}
               </div>
             ) : (
-              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-xs">
-                <div className="font-bold flex items-center gap-1.5 text-emerald-300">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  Pre-Trade Risk Clearance Approved
+              <div className="space-y-2">
+                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-xs">
+                  <div className="font-bold flex items-center gap-1.5 text-emerald-300">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    Pre-Trade Risk Clearance Approved
+                  </div>
+                  <div className="text-[11px] text-slate-300 mt-1">
+                    Risk amount ({formatCurrency(riskAmount, currency)}) is within your 1.0% capital risk limit. Risk/Reward ratio: <span className="font-mono text-emerald-300">{rrRatio}:1</span>.
+                  </div>
                 </div>
-                <div className="text-[11px] text-slate-300 mt-1">
-                  Risk amount (${riskAmount.toFixed(2)}) is within your 1.0% capital risk limit. Risk/Reward ratio: <span className="font-mono text-emerald-300">{rrRatio}:1</span>.
-                </div>
+                {riskCheckResult?.warnings && riskCheckResult.warnings.length > 0 && (
+                  <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-semibold text-amber-300 text-[11px]">Volatility Notice</div>
+                      <ul className="list-disc list-inside text-[11px] text-amber-200/90 mt-0.5">
+                        {riskCheckResult.warnings.map((w: string, i: number) => (
+                          <li key={i}>{w}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

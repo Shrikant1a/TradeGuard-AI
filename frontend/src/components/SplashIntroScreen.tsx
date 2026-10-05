@@ -44,20 +44,42 @@ export function SplashIntroScreen({ onComplete, minDuration = 2200 }: SplashIntr
       }, 700);
     }, minDuration);
 
+    // Timeout safety recovery watchdog (max 3.2s)
+    const tWatchdog = setTimeout(() => {
+      setPhase("fadeout");
+      setTimeout(() => {
+        setIsDismissed(true);
+        if (onComplete) onComplete();
+      }, 300);
+    }, 3200);
+
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
       clearTimeout(t4);
+      clearTimeout(tWatchdog);
     };
   }, [minDuration, onComplete]);
+
+  // Keyboard navigation support (Enter, Space, Escape)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
+        e.preventDefault();
+        handleSkip();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const handleSkip = () => {
     setPhase("fadeout");
     setTimeout(() => {
       setIsDismissed(true);
       if (onComplete) onComplete();
-    }, 400);
+    }, 300);
   };
 
   if (isDismissed) return null;
@@ -65,16 +87,19 @@ export function SplashIntroScreen({ onComplete, minDuration = 2200 }: SplashIntr
   return (
     <div
       onClick={handleSkip}
-      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#060a14] select-none cursor-pointer transition-all duration-700 ease-out ${
+      role="dialog"
+      aria-label="TradeGuard AI Splash Screen"
+      tabIndex={0}
+      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#060a14] select-none cursor-pointer transition-all duration-700 ease-out touch-manipulation ${
         phase === "fadeout"
           ? "opacity-0 scale-105 pointer-events-none blur-sm"
           : "opacity-100 scale-100"
       }`}
     >
       {/* Background Cyber Ambient Glow & Terminal Grid */}
-      <div className="absolute inset-0 terminal-grid opacity-30" />
-      <div className="absolute w-[500px] h-[500px] rounded-full bg-cyan-500/10 blur-[120px] pointer-events-none -top-20 -left-20 animate-pulse" />
-      <div className="absolute w-[500px] h-[500px] rounded-full bg-purple-600/10 blur-[130px] pointer-events-none -bottom-20 -right-20 animate-pulse" style={{ animationDelay: "1s" }} />
+      <div className="absolute inset-0 terminal-grid opacity-30 pointer-events-none" />
+      <div className="absolute w-[350px] sm:w-[500px] h-[350px] sm:h-[500px] rounded-full bg-cyan-500/10 blur-[100px] sm:blur-[120px] pointer-events-none -top-20 -left-20 animate-pulse" />
+      <div className="absolute w-[350px] sm:w-[500px] h-[350px] sm:h-[500px] rounded-full bg-purple-600/10 blur-[100px] sm:blur-[130px] pointer-events-none -bottom-20 -right-20 animate-pulse" style={{ animationDelay: "1s" }} />
 
       {/* Center Cinematic Container */}
       <div className="relative z-10 flex flex-col items-center text-center px-4 max-w-md w-full">
@@ -118,11 +143,11 @@ export function SplashIntroScreen({ onComplete, minDuration = 2200 }: SplashIntr
         </div>
 
         {/* High-Tech Progress & Status Indicator */}
-        <div className={`mt-8 w-full max-w-xs transition-all duration-500 ${
+        <div className={`mt-6 sm:mt-8 w-full max-w-xs transition-all duration-500 ${
           phase === "logo" ? "opacity-0" : "opacity-100"
         }`}>
           {/* Glowing Progress Track */}
-          <div className="h-1 w-full bg-slate-800/80 rounded-full overflow-hidden border border-slate-700/50 p-[1px]">
+          <div className="h-1.5 w-full bg-slate-800/80 rounded-full overflow-hidden border border-slate-700/50 p-[1px]">
             <div
               className="h-full bg-gradient-to-r from-cyan-500 via-sky-400 to-purple-500 rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(6,182,212,0.8)]"
               style={{ width: `${progress}%` }}
@@ -130,15 +155,28 @@ export function SplashIntroScreen({ onComplete, minDuration = 2200 }: SplashIntr
           </div>
 
           {/* Dynamic Status Text */}
-          <div className="mt-3 flex items-center justify-between text-[11px] font-mono">
+          <div className="mt-2.5 flex items-center justify-between text-[11px] font-mono">
             <span className="text-slate-400 animate-pulse">{statusText}</span>
             <span className="text-cyan-400 font-bold">{progress}%</span>
           </div>
         </div>
 
-        {/* Skip hint */}
-        <div className="mt-6 text-[10px] text-slate-500 hover:text-slate-300 tracking-wider font-mono transition-colors">
-          Click anywhere to enter →
+        {/* Interactive Enter Platform Control */}
+        <button
+          id="splash-enter-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleSkip();
+          }}
+          className="mt-6 px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-purple-500/20 hover:from-cyan-500/40 hover:to-purple-500/40 text-cyan-200 border border-cyan-400/40 text-xs font-bold tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(6,182,212,0.25)] hover:shadow-[0_0_25px_rgba(6,182,212,0.45)] hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-cyan-400 flex items-center gap-2 cursor-pointer"
+        >
+          <span>Enter Dashboard</span>
+          <span className="text-cyan-400">→</span>
+        </button>
+
+        {/* Keyboard hint */}
+        <div className="mt-3 text-[10px] text-slate-500 tracking-wider font-mono">
+          Press <kbd className="px-1 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400">Enter</kbd> or tap anywhere
         </div>
       </div>
     </div>

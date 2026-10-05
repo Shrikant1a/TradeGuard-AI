@@ -372,6 +372,7 @@ class StellarSorobanService:
             if not is_match:
                 status = "TAMPERED_OR_INVALID"
 
+            sub_err = local_record.get("submission_error") or ("Pending: STELLAR_SECRET_KEY not configured for testnet signing" if status == "PENDING" else None)
             return {
                 "signal_code": signal_code,
                 "asset": local_record["asset"],
@@ -386,6 +387,8 @@ class StellarSorobanService:
                 "stellar_ledger_seq": local_record.get("stellar_ledger_seq"),
                 "network": self.network,
                 "explorer_url": local_record.get("explorer_url"),
+                "submission_error": sub_err,
+                "message": "Signal is verified on-chain" if (is_match and status == "VERIFIED") else "Awaiting on-chain transaction confirmation (BLOCKED - EXTERNAL DEPENDENCY: STELLAR_SECRET_KEY not provided)",
                 "source": "Local Audit Store (Awaiting On-Chain Confirmation)",
             }
 

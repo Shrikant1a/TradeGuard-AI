@@ -168,16 +168,15 @@ export function NewsDashboard({ onSelectSymbol }: NewsDashboardProps) {
   };
 
   const CATEGORIES = [
-    { id: "ALL", label: "All News" },
-    { id: "BREAKING", label: "Breaking" },
-    { id: "STOCK", label: "Stocks" },
-    { id: "MARKET", label: "Market" },
-    { id: "ECONOMY", label: "Economy" },
-    { id: "EARNINGS", label: "Earnings" },
-    { id: "TECHNOLOGY", label: "Technology" },
-    { id: "CRYPTO", label: "Crypto" },
-    { id: "IPO", label: "IPO" },
-    { id: "MERGER_ACQUISITION", label: "M&A" }
+    { id: "ALL", label: "🇮🇳 All Indian & Global News" },
+    { id: "RBI_POLICY", label: "🏛️ RBI Policy" },
+    { id: "SEBI_REGULATION", label: "⚖️ SEBI & Regulations" },
+    { id: "INDIAN_ECONOMY", label: "🇮🇳 Indian Economy" },
+    { id: "INDIAN_BANKING", label: "🏦 Indian Banking" },
+    { id: "INDIAN_IT", label: "💻 Indian IT & AI" },
+    { id: "BREAKING", label: "🚨 Breaking" },
+    { id: "MARKET", label: "📊 Markets (NSE/BSE)" },
+    { id: "GLOBAL", label: "🌐 Global Markets" }
   ];
 
   return (
