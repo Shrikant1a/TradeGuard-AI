@@ -152,9 +152,9 @@ export const FALLBACK_SIGNALS = [
     signal_type: "HOLD",
     confidence: 68.0,
     risk_score: "LOW",
-    current_price: 710.45,
-    stop_loss: 685.58,
-    take_profit: 749.52,
+    current_price: 712.65,
+    stop_loss: 687.70,
+    take_profit: 751.85,
     risk_reward_ratio: 1.6,
     model_version: "TradeGuard-v1.2",
     signal_hash: "sha256_94b7c2a1e085f33e",
@@ -210,8 +210,8 @@ export const FALLBACK_SCANNER = [
   },
   {
     symbol: "HDFCBANK",
-    price: 710.45,
-    change_pct: 0.80,
+    price: 712.65,
+    change_pct: 1.11,
     signal: "HOLD",
     confidence: 68.0,
     volume: "8.1M",
@@ -280,11 +280,11 @@ export const FALLBACK_PORTFOLIO = {
       side: "BUY",
       quantity: 100,
       entry_price: 704.80,
-      current_price: 710.45,
-      unrealized_pnl: 565.0,
-      pnl_pct: 0.80,
-      stop_loss: 685.58,
-      take_profit: 749.52
+      current_price: 712.65,
+      unrealized_pnl: 785.0,
+      pnl_pct: 1.11,
+      stop_loss: 687.70,
+      take_profit: 751.85
     }
   ],
   allocations: [

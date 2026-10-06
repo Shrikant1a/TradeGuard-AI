@@ -173,7 +173,7 @@ export const api = {
         { symbol: "RELIANCE", name: "Reliance Industries", exchange: "NSE", sector: "Energy", price: 1190.50, currency: "INR" },
         { symbol: "TCS", name: "Tata Consultancy Services", exchange: "NSE", sector: "Technology", price: 2110.00, currency: "INR" },
         { symbol: "INFY", name: "Infosys Ltd.", exchange: "NSE", sector: "Technology", price: 1025.00, currency: "INR" },
-        { symbol: "HDFCBANK", name: "HDFC Bank Ltd.", exchange: "NSE", sector: "Banking", price: 710.45, currency: "INR" },
+        { symbol: "HDFCBANK", name: "HDFC Bank Ltd.", exchange: "NSE", sector: "Banking", price: 712.65, currency: "INR" },
         { symbol: "ICICIBANK", name: "ICICI Bank Ltd.", exchange: "NSE", sector: "Banking", price: 1331.00, currency: "INR" },
         { symbol: "SBIN", name: "State Bank of India", exchange: "NSE", sector: "Banking", price: 958.00, currency: "INR" },
         { symbol: "MARUTI", name: "Maruti Suzuki India", exchange: "NSE", sector: "Automotive", price: 12450.00, currency: "INR" },
