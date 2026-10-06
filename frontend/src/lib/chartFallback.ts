@@ -210,6 +210,30 @@ export function generateFallbackChart(
   };
 }
 
+/**
+ * Canonical signal overrides for key assets.
+ * These ensure that fallback analysis signals always match
+ * FALLBACK_SIGNALS and FALLBACK_SCANNER in fallbackPlatformData.ts
+ * (TC-026: Signal consistency across dashboard)
+ */
+const CANONICAL_SIGNALS: Record<string, { signal: "BUY" | "HOLD" | "SELL"; rsi: number; confidence: number }> = {
+  "RELIANCE": { signal: "BUY", rsi: 58.4, confidence: 78 },
+  "RELIANCE.NS": { signal: "BUY", rsi: 58.4, confidence: 78 },
+  "TCS": { signal: "BUY", rsi: 61.2, confidence: 82 },
+  "TCS.NS": { signal: "BUY", rsi: 61.2, confidence: 82 },
+  "INFY": { signal: "BUY", rsi: 56.1, confidence: 74 },
+  "INFY.NS": { signal: "BUY", rsi: 56.1, confidence: 74 },
+  "HDFCBANK": { signal: "HOLD", rsi: 51.3, confidence: 68 },
+  "HDFCBANK.NS": { signal: "HOLD", rsi: 51.3, confidence: 68 },
+  "ICICIBANK": { signal: "BUY", rsi: 59.8, confidence: 77 },
+  "ICICIBANK.NS": { signal: "BUY", rsi: 59.8, confidence: 77 },
+  "SBIN": { signal: "BUY", rsi: 62.4, confidence: 76 },
+  "SBIN.NS": { signal: "BUY", rsi: 62.4, confidence: 76 },
+  "AAPL": { signal: "BUY", rsi: 57.2, confidence: 76 },
+  "NVDA": { signal: "BUY", rsi: 63.5, confidence: 81 },
+  "TSLA": { signal: "HOLD", rsi: 52.0, confidence: 69 },
+};
+
 export function generateFallbackAnalysis(rawSymbol: string): any {
   const sym = rawSymbol.trim().toUpperCase();
   const chartRes = generateFallbackChart(sym);
@@ -218,14 +242,24 @@ export function generateFallbackAnalysis(rawSymbol: string): any {
   const isUp = q.change >= 0;
   const hash = Math.abs(stringHash(sym)).toString(16).padStart(8, "0") + "a7c2";
 
-  const rsi = Math.round((45 + (stringHash(sym + "rsi") % 30)) * 10) / 10;
-  const signalType = rsi > 55 ? "BUY" : rsi < 42 ? "SELL" : "HOLD";
-  const confidence = 65 + (stringHash(sym + "conf") % 28);
+  // Use canonical signal if available to ensure UI-wide consistency (TC-026)
+  const canonical = CANONICAL_SIGNALS[sym];
+  const rsi = canonical ? canonical.rsi : Math.round((45 + (stringHash(sym + "rsi") % 30)) * 10) / 10;
+  const signalType: "BUY" | "HOLD" | "SELL" = canonical ? canonical.signal : (rsi > 55 ? "BUY" : rsi < 42 ? "SELL" : "HOLD");
+  const confidence = canonical ? canonical.confidence : (65 + (stringHash(sym + "conf") % 28));
   const riskScore = confidence > 75 ? 2 : confidence > 60 ? 3 : 4;
   const riskLevel = riskScore <= 2 ? "LOW" : riskScore === 3 ? "MODERATE" : "ELEVATED";
 
-  const stopLoss = Math.round(price * (signalType === "BUY" ? 0.965 : 1.035) * 100) / 100;
-  const takeProfit = Math.round(price * (signalType === "BUY" ? 1.075 : 0.925) * 100) / 100;
+  // TC-028/029/030: SL/TP must always be logically consistent with price direction.
+  // BUY: SL below price, TP above price.
+  // SELL: SL above price, TP below price.
+  // HOLD: Use a neutral symmetric bracket — SL below (protective), TP above (modest target).
+  const stopLoss = Math.round(
+    price * (signalType === "SELL" ? 1.035 : 0.965) * 100
+  ) / 100;  // BUY/HOLD: SL below price; SELL: SL above
+  const takeProfit = Math.round(
+    price * (signalType === "SELL" ? 0.92 : (signalType === "HOLD" ? 1.055 : 1.075)) * 100
+  ) / 100;  // BUY: TP 7.5% above; HOLD: TP 5.5% above; SELL: TP 8% below
   const rrRatio = Math.round((Math.abs(takeProfit - price) / Math.max(0.01, Math.abs(price - stopLoss))) * 10) / 10;
 
   const bullishProb = signalType === "BUY" ? Math.min(confidence, 82.5) : signalType === "SELL" ? 18.2 : 35.0;
@@ -334,6 +368,7 @@ export function generateFallbackAnalysis(rawSymbol: string): any {
     },
     is_cached: false,
     is_fallback: true,
+    is_live: false,  // TC-067: Fallback data is NOT live — prevents false "● LIVE DATA" label
   };
 }
 

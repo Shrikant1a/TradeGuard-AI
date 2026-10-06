@@ -905,6 +905,7 @@ export default function TradeGuardApp() {
               <ErrorBoundary fallbackTitle="AI Market Intelligence Temporarily Unavailable" fallbackMessage="AI model metrics calculation is refreshing. Technical charts and trading features remain available.">
                 <AIMarketIntelligenceBanner
                   data={analysisData}
+                  isLoading={loadingAnalysis}
                   onRefresh={() => loadAssetAnalysis(currentSymbol)}
                   onOpenTradeModal={handleOpenTradeModal}
                   onOpenBlockchainVerify={handleOpenBlockchainVerify}

@@ -319,10 +319,12 @@ export function TickerTapeWidget({ onSelectSymbol }: TickerTapeWidgetProps) {
           </div>
         ))}
 
-        {/* Second identical track for seamless infinite marquee loop */}
+        {/* Second identical track: aria-hidden intentional — required for seamless infinite CSS marquee loop (TC-057) */}
         {tickers.map((item, idx) => (
           <div
             key={`ticker-2-${idx}`}
+            aria-hidden="true"
+            data-marquee-duplicate="true"
             onClick={(e) => {
               e.stopPropagation();
               if (onSelectSymbol) onSelectSymbol(item.symbol);

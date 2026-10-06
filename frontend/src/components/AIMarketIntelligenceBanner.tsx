@@ -9,6 +9,7 @@ import { formatCurrency, getCurrencySymbol } from "@/lib/currency";
 
 interface AIMarketIntelligenceBannerProps {
   data: any;
+  isLoading?: boolean;  // TC-058: Show skeleton during asset switching
   onRefresh?: () => void;
   onOpenTradeModal?: (symbol: string, side: string, price: number) => void;
   onOpenBlockchainVerify?: (signalCode: string, signalHash: string) => void;
@@ -16,6 +17,7 @@ interface AIMarketIntelligenceBannerProps {
 
 export function AIMarketIntelligenceBanner({
   data,
+  isLoading,
   onRefresh,
   onOpenTradeModal,
   onOpenBlockchainVerify
@@ -31,6 +33,34 @@ export function AIMarketIntelligenceBanner({
       setTimedOut(false);
     }
   }, [data]);
+
+  // TC-058: Show skeleton/loading state when isLoading prop is set
+  if (isLoading) {
+    return (
+      <div className="glass-panel p-6 rounded-xl border border-cyan-500/20 bg-slate-900/60 animate-pulse">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-20 h-4 bg-slate-700 rounded" />
+            <div className="w-28 h-4 bg-slate-800 rounded" />
+          </div>
+          <div className="w-24 h-8 bg-slate-800 rounded-lg" />
+        </div>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-36 h-7 bg-slate-700 rounded" />
+          <div className="w-20 h-5 bg-slate-800 rounded" />
+        </div>
+        <div className="grid grid-cols-3 gap-4 mt-4">
+          <div className="h-16 bg-slate-800 rounded-xl" />
+          <div className="h-16 bg-slate-800 rounded-xl" />
+          <div className="h-16 bg-slate-800 rounded-xl" />
+        </div>
+        <div className="flex items-center gap-2 mt-3">
+          <RefreshCw className="w-4 h-4 animate-spin text-cyan-400" />
+          <span className="text-sm text-slate-400">Loading AI Market Intelligence for {data?.symbol || "asset"}...</span>
+        </div>
+      </div>
+    );
+  }
 
   if (!data || !data.signal) {
     if (timedOut) {
@@ -107,7 +137,7 @@ export function AIMarketIntelligenceBanner({
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">AI Market Intelligence</span>
               {/* Market Data Provenance Badge */}
-              {data?.is_live !== false ? (
+              {(data?.is_live !== false) && (data?.is_fallback !== true) ? (
                 <span 
                   className={`px-2 py-0.5 rounded text-[10px] font-mono flex items-center gap-1 ${
                     data?.is_stale 
