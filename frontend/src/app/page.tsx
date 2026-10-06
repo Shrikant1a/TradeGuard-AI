@@ -1690,147 +1690,181 @@ export default function TradeGuardApp() {
               </form>
 
               {/* Current symbol display & Engine Switcher */}
-              <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-400">Viewing:</span>
-                  <span className="font-mono font-bold text-cyan-300 bg-cyan-500/10 px-2.5 py-0.5 rounded-lg border border-cyan-500/30 text-sm">
-                    {chartSymbol}
-                  </span>
-                  {chartEngine === "tradingview" && (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      ● LIVE FEED (TradingView / NSE Real-Time)
-                    </span>
-                  )}
-                </div>
+              {(() => {
+                const isIndianSymbol =
+                  chartSymbol.startsWith("NSE:") ||
+                  chartSymbol.startsWith("BSE:") ||
+                  ["RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK", "SBIN", "BHARTIARTL", "TATAMOTORS", "MARUTI", "ITC", "LT", "NIFTY", "SENSEX"].some((s) =>
+                    chartSymbol.toUpperCase().includes(s)
+                  );
+                const tvWebUrl = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(chartSymbol)}`;
 
-                {/* Engine Selector */}
-                <div className="flex items-center p-1 rounded-xl bg-slate-900 border border-slate-800">
-                  <button
-                    onClick={() => setChartEngine("tradingview")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                      chartEngine === "tradingview"
-                        ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20"
-                        : "text-slate-400 hover:text-slate-200"
-                    }`}
-                  >
-                    <Zap className="w-3.5 h-3.5" /> TradingView Live (Real-Time)
-                  </button>
-                  <button
-                    onClick={() => setChartEngine("lightweight")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                      chartEngine === "lightweight"
-                        ? "bg-purple-500 text-white shadow-md shadow-purple-500/20"
-                        : "text-slate-400 hover:text-slate-200"
-                    }`}
-                  >
-                    <BarChart3 className="w-3.5 h-3.5" /> TradeGuard Canvas (AI Pro)
-                  </button>
-                </div>
-              </div>
+                return (
+                  <>
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-slate-400">Viewing:</span>
+                        <span className="font-mono font-bold text-cyan-300 bg-cyan-500/10 px-2.5 py-0.5 rounded-lg border border-cyan-500/30 text-sm">
+                          {chartSymbol}
+                        </span>
+                        {isIndianSymbol ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                            ● LIVE PRO CANVAS (NSE / BSE Institutional Feed)
+                          </span>
+                        ) : chartEngine === "tradingview" ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            ● LIVE FEED (TradingView Real-Time)
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                            ● PRO CANVAS ENGINE
+                          </span>
+                        )}
+                        <a
+                          href={tvWebUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2 py-0.5 rounded text-[11px] font-semibold text-slate-400 hover:text-cyan-300 hover:bg-slate-800/80 border border-slate-700/60 inline-flex items-center gap-1 transition-colors"
+                          title="Open full chart directly on TradingView.com"
+                        >
+                          TradingView.com <ArrowUpRight className="w-3 h-3" />
+                        </a>
+                      </div>
 
-              {/* ── Quick-Pick Grid ── */}
-              <div className="space-y-2">
-                {[
-                  {
-                    label: "🇮🇳 Indian Markets (NSE / BSE)",
-                    symbols: [
-                      { name: "HDFC Bank", tv: "NSE:HDFCBANK" },
-                      { name: "RELIANCE", tv: "NSE:RELIANCE" },
-                      { name: "TCS", tv: "NSE:TCS" },
-                      { name: "INFY", tv: "NSE:INFY" },
-                      { name: "ICICI Bank", tv: "NSE:ICICIBANK" },
-                      { name: "SBIN", tv: "NSE:SBIN" },
-                      { name: "NIFTY 50", tv: "NSE:NIFTY50" },
-                      { name: "SENSEX", tv: "BSE:SENSEX" },
-                    ],
-                  },
-                  {
-                    label: "🇺🇸 US Stocks (Global)",
-                    symbols: [
-                      { name: "AAPL", tv: "NASDAQ:AAPL" },
-                      { name: "NVDA", tv: "NASDAQ:NVDA" },
-                      { name: "TSLA", tv: "NASDAQ:TSLA" },
-                      { name: "MSFT", tv: "NASDAQ:MSFT" },
-                      { name: "GOOGL", tv: "NASDAQ:GOOGL" },
-                      { name: "AMZN", tv: "NASDAQ:AMZN" },
-                      { name: "META", tv: "NASDAQ:META" },
-                      { name: "JPM", tv: "NYSE:JPM" },
-                    ],
-                  },
-                  {
-                    label: "₿ Crypto",
-                    symbols: [
-                      { name: "Bitcoin", tv: "BINANCE:BTCUSDT" },
-                      { name: "Ethereum", tv: "BINANCE:ETHUSDT" },
-                      { name: "Solana", tv: "BINANCE:SOLUSDT" },
-                      { name: "BNB", tv: "BINANCE:BNBUSDT" },
-                      { name: "XRP", tv: "BINANCE:XRPUSDT" },
-                      { name: "DOGE", tv: "BINANCE:DOGEUSDT" },
-                      { name: "ADA", tv: "BINANCE:ADAUSDT" },
-                      { name: "MATIC", tv: "BINANCE:MATICUSDT" },
-                    ],
-                  },
-                  {
-                    label: "🏆 Commodities",
-                    symbols: [
-                      { name: "Gold", tv: "TVC:GOLD" },
-                      { name: "Silver", tv: "TVC:SILVER" },
-                      { name: "Crude Oil", tv: "TVC:USOIL" },
-                      { name: "Brent Oil", tv: "TVC:UKOIL" },
-                      { name: "Nat Gas", tv: "TVC:NATURALGAS" },
-                      { name: "Copper", tv: "TVC:COPPER" },
-                      { name: "Platinum", tv: "TVC:PLATINUM" },
-                      { name: "S&P 500", tv: "FOREXCOM:SPXUSD" },
-                    ],
-                  },
-                  {
-                    label: "💱 Forex",
-                    symbols: [
-                      { name: "EUR/USD", tv: "FX_IDC:EURUSD" },
-                      { name: "GBP/USD", tv: "FX_IDC:GBPUSD" },
-                      { name: "USD/JPY", tv: "FX_IDC:USDJPY" },
-                      { name: "USD/INR", tv: "FX_IDC:USDINR" },
-                      { name: "AUD/USD", tv: "FX_IDC:AUDUSD" },
-                      { name: "USD/CHF", tv: "FX_IDC:USDCHF" },
-                      { name: "DXY", tv: "TVC:DXY" },
-                      { name: "VIX", tv: "TVC:VIX" },
-                    ],
-                  },
-                ].map((group) => (
-                  <div key={group.label} className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
-                    <span className="text-[10px] text-slate-500 uppercase tracking-widest sm:w-28 shrink-0">
-                      {group.label}
-                    </span>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {group.symbols.map((sym) => (
+                      {/* Engine Selector */}
+                      <div className="flex items-center p-1 rounded-xl bg-slate-900 border border-slate-800">
                         <button
-                          key={sym.tv}
-                          onClick={() => setChartSymbol(sym.tv)}
-                          className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all duration-150 ${
-                            chartSymbol === sym.tv
-                              ? "bg-cyan-500 border-cyan-400 text-slate-950 font-bold"
-                              : "bg-slate-900 border-slate-700 text-slate-300 hover:border-cyan-500/50 hover:text-cyan-300"
+                          onClick={() => setChartEngine("lightweight")}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                            chartEngine === "lightweight" || isIndianSymbol
+                              ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 font-bold"
+                              : "text-slate-400 hover:text-slate-200"
                           }`}
                         >
-                          {sym.name}
+                          <BarChart3 className="w-3.5 h-3.5" /> TradeGuard Pro Canvas
                         </button>
+                        {!isIndianSymbol && (
+                          <button
+                            onClick={() => setChartEngine("tradingview")}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                              chartEngine === "tradingview"
+                                ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20"
+                                : "text-slate-400 hover:text-slate-200"
+                            }`}
+                          >
+                            <Zap className="w-3.5 h-3.5" /> TradingView Embed
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* ── Quick-Pick Grid ── */}
+                    <div className="space-y-2">
+                      {[
+                        {
+                          label: "🇮🇳 Indian Markets (NSE / BSE)",
+                          symbols: [
+                            { name: "HDFC Bank", tv: "NSE:HDFCBANK" },
+                            { name: "RELIANCE", tv: "NSE:RELIANCE" },
+                            { name: "TCS", tv: "NSE:TCS" },
+                            { name: "INFY", tv: "NSE:INFY" },
+                            { name: "ICICI Bank", tv: "NSE:ICICIBANK" },
+                            { name: "SBIN", tv: "NSE:SBIN" },
+                            { name: "NIFTY 50", tv: "NSE:NIFTY50" },
+                            { name: "SENSEX", tv: "BSE:SENSEX" },
+                          ],
+                        },
+                        {
+                          label: "🇺🇸 US Stocks (Global)",
+                          symbols: [
+                            { name: "AAPL", tv: "NASDAQ:AAPL" },
+                            { name: "NVDA", tv: "NASDAQ:NVDA" },
+                            { name: "TSLA", tv: "NASDAQ:TSLA" },
+                            { name: "MSFT", tv: "NASDAQ:MSFT" },
+                            { name: "GOOGL", tv: "NASDAQ:GOOGL" },
+                            { name: "AMZN", tv: "NASDAQ:AMZN" },
+                            { name: "META", tv: "NASDAQ:META" },
+                            { name: "JPM", tv: "NYSE:JPM" },
+                          ],
+                        },
+                        {
+                          label: "₿ Crypto",
+                          symbols: [
+                            { name: "Bitcoin", tv: "BINANCE:BTCUSDT" },
+                            { name: "Ethereum", tv: "BINANCE:ETHUSDT" },
+                            { name: "Solana", tv: "BINANCE:SOLUSDT" },
+                            { name: "BNB", tv: "BINANCE:BNBUSDT" },
+                            { name: "XRP", tv: "BINANCE:XRPUSDT" },
+                            { name: "DOGE", tv: "BINANCE:DOGEUSDT" },
+                            { name: "ADA", tv: "BINANCE:ADAUSDT" },
+                            { name: "MATIC", tv: "BINANCE:MATICUSDT" },
+                          ],
+                        },
+                        {
+                          label: "🏆 Commodities",
+                          symbols: [
+                            { name: "Gold", tv: "TVC:GOLD" },
+                            { name: "Silver", tv: "TVC:SILVER" },
+                            { name: "Crude Oil", tv: "TVC:USOIL" },
+                            { name: "Brent Oil", tv: "TVC:UKOIL" },
+                            { name: "Nat Gas", tv: "TVC:NATURALGAS" },
+                            { name: "Copper", tv: "TVC:COPPER" },
+                            { name: "Platinum", tv: "TVC:PLATINUM" },
+                            { name: "S&P 500", tv: "FOREXCOM:SPXUSD" },
+                          ],
+                        },
+                        {
+                          label: "💱 Forex",
+                          symbols: [
+                            { name: "EUR/USD", tv: "FX_IDC:EURUSD" },
+                            { name: "GBP/USD", tv: "FX_IDC:GBPUSD" },
+                            { name: "USD/JPY", tv: "FX_IDC:USDJPY" },
+                            { name: "USD/INR", tv: "FX_IDC:USDINR" },
+                            { name: "AUD/USD", tv: "FX_IDC:AUDUSD" },
+                            { name: "USD/CHF", tv: "FX_IDC:USDCHF" },
+                            { name: "DXY", tv: "TVC:DXY" },
+                            { name: "VIX", tv: "TVC:VIX" },
+                          ],
+                        },
+                      ].map((group) => (
+                        <div key={group.label} className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
+                          <span className="text-[10px] text-slate-500 uppercase tracking-widest sm:w-28 shrink-0">
+                            {group.label}
+                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {group.symbols.map((sym) => (
+                              <button
+                                key={sym.tv}
+                                onClick={() => setChartSymbol(sym.tv)}
+                                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all duration-150 ${
+                                  chartSymbol === sym.tv
+                                    ? "bg-cyan-500 border-cyan-400 text-slate-950 font-bold"
+                                    : "bg-slate-900 border-slate-700 text-slate-300 hover:border-cyan-500/50 hover:text-cyan-300"
+                                }`}
+                              >
+                                {sym.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       ))}
                     </div>
-                  </div>
-                ))}
-              </div>
 
-              {/* ── The Chart ── */}
-              <div className="w-full">
-                <ErrorBoundary fallbackTitle="Chart Temporarily Unavailable" fallbackMessage="Technical chart canvas encountered an isolated rendering issue. Try selecting another asset or refresh.">
-                  {chartEngine === "tradingview" ? (
-                    <TradingViewWidget symbol={chartSymbol} height={580} />
-                  ) : (
-                    <LightweightChartWidget symbol={chartSymbol} height={580} />
-                  )}
-                </ErrorBoundary>
-              </div>
+                    {/* ── The Chart ── */}
+                    <div className="w-full">
+                      <ErrorBoundary fallbackTitle="Chart Temporarily Unavailable" fallbackMessage="Technical chart canvas encountered an isolated rendering issue. Try selecting another asset or refresh.">
+                        {isIndianSymbol || chartEngine === "lightweight" ? (
+                          <LightweightChartWidget symbol={chartSymbol} height={580} />
+                        ) : (
+                          <TradingViewWidget symbol={chartSymbol} height={580} />
+                        )}
+                      </ErrorBoundary>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           )}
 
