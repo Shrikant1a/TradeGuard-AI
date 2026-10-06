@@ -243,14 +243,22 @@ export function AIMarketIntelligenceBanner({
         </div>
 
         {/* Suggested Risk Limits */}
-        <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between">
-          <span className="text-[11px] font-medium text-slate-400 uppercase">Bracket SL / TP</span>
-          <div className="text-xs font-mono font-bold text-slate-200 my-1">
-            <div className="text-rose-400">SL: {currSymbol}{signal?.stop_loss || (closePrice * 0.965).toFixed(2)}</div>
-            <div className="text-emerald-400">TP: {currSymbol}{signal?.take_profit || (closePrice * 1.075).toFixed(2)}</div>
-          </div>
-          <span className="text-[10px] text-slate-400">R:R {signal?.risk_reward_ratio || 2.1}:1</span>
-        </div>
+        {(() => {
+          const dispSL = signal?.stop_loss ?? (isBuy ? Math.round(closePrice * 0.965 * 100) / 100 : isSell ? Math.round(closePrice * 1.035 * 100) / 100 : Math.round(closePrice * 0.965 * 100) / 100);
+          const dispTP = signal?.take_profit ?? (isBuy ? Math.round(closePrice * 1.075 * 100) / 100 : isSell ? Math.round(closePrice * 0.92 * 100) / 100 : Math.round(closePrice * 1.055 * 100) / 100);
+          const calcRR = signal?.risk_reward_ratio ?? (Math.abs(dispTP - closePrice) / Math.max(0.01, Math.abs(closePrice - dispSL))).toFixed(1);
+
+          return (
+            <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between">
+              <span className="text-[11px] font-medium text-slate-400 uppercase">Bracket SL / TP</span>
+              <div className="text-xs font-mono font-bold text-slate-200 my-1">
+                <div className="text-rose-400">SL: {currSymbol}{typeof dispSL === "number" ? dispSL.toFixed(2) : dispSL}</div>
+                <div className="text-emerald-400">TP: {currSymbol}{typeof dispTP === "number" ? dispTP.toFixed(2) : dispTP}</div>
+              </div>
+              <span className="text-[10px] text-slate-400">R:R {calcRR}:1</span>
+            </div>
+          );
+        })()}
       </div>
 
       {/* WHY THIS SIGNAL? Explainable AI Panel */}
