@@ -109,9 +109,10 @@ export default function TradeGuardApp() {
     }
     return true;
   });
-  // Dedicated chart search state
+  // Dedicated chart search & engine state
   const [chartInput, setChartInput] = useState("");
   const [chartSymbol, setChartSymbol] = useState("NSE:RELIANCE");
+  const [chartEngine, setChartEngine] = useState<"tradingview" | "lightweight">("tradingview");
 
   // State data from backend with instant resilient fallback hydration
   const [analysisData, setAnalysisData] = useState<any>(() => generateFallbackAnalysis("RELIANCE"));
@@ -1688,12 +1689,44 @@ export default function TradeGuardApp() {
                 </button>
               </form>
 
-              {/* Current symbol display */}
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-400">Viewing:</span>
-                <span className="font-mono font-bold text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/30">
-                  {chartSymbol}
-                </span>
+              {/* Current symbol display & Engine Switcher */}
+              <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400">Viewing:</span>
+                  <span className="font-mono font-bold text-cyan-300 bg-cyan-500/10 px-2.5 py-0.5 rounded-lg border border-cyan-500/30 text-sm">
+                    {chartSymbol}
+                  </span>
+                  {chartEngine === "tradingview" && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                      ● LIVE FEED (TradingView / NSE Real-Time)
+                    </span>
+                  )}
+                </div>
+
+                {/* Engine Selector */}
+                <div className="flex items-center p-1 rounded-xl bg-slate-900 border border-slate-800">
+                  <button
+                    onClick={() => setChartEngine("tradingview")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      chartEngine === "tradingview"
+                        ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <Zap className="w-3.5 h-3.5" /> TradingView Live (Real-Time)
+                  </button>
+                  <button
+                    onClick={() => setChartEngine("lightweight")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      chartEngine === "lightweight"
+                        ? "bg-purple-500 text-white shadow-md shadow-purple-500/20"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <BarChart3 className="w-3.5 h-3.5" /> TradeGuard Canvas (AI Pro)
+                  </button>
+                </div>
               </div>
 
               {/* ── Quick-Pick Grid ── */}
@@ -1702,10 +1735,10 @@ export default function TradeGuardApp() {
                   {
                     label: "🇮🇳 Indian Markets (NSE / BSE)",
                     symbols: [
+                      { name: "HDFC Bank", tv: "NSE:HDFCBANK" },
                       { name: "RELIANCE", tv: "NSE:RELIANCE" },
                       { name: "TCS", tv: "NSE:TCS" },
                       { name: "INFY", tv: "NSE:INFY" },
-                      { name: "HDFC Bank", tv: "NSE:HDFCBANK" },
                       { name: "ICICI Bank", tv: "NSE:ICICIBANK" },
                       { name: "SBIN", tv: "NSE:SBIN" },
                       { name: "NIFTY 50", tv: "NSE:NIFTY50" },
@@ -1776,7 +1809,7 @@ export default function TradeGuardApp() {
                           onClick={() => setChartSymbol(sym.tv)}
                           className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all duration-150 ${
                             chartSymbol === sym.tv
-                              ? "bg-cyan-500 border-cyan-400 text-slate-950"
+                              ? "bg-cyan-500 border-cyan-400 text-slate-950 font-bold"
                               : "bg-slate-900 border-slate-700 text-slate-300 hover:border-cyan-500/50 hover:text-cyan-300"
                           }`}
                         >
@@ -1791,7 +1824,11 @@ export default function TradeGuardApp() {
               {/* ── The Chart ── */}
               <div className="w-full">
                 <ErrorBoundary fallbackTitle="Chart Temporarily Unavailable" fallbackMessage="Technical chart canvas encountered an isolated rendering issue. Try selecting another asset or refresh.">
-                  <LightweightChartWidget symbol={chartSymbol} height={530} />
+                  {chartEngine === "tradingview" ? (
+                    <TradingViewWidget symbol={chartSymbol} height={580} />
+                  ) : (
+                    <LightweightChartWidget symbol={chartSymbol} height={580} />
+                  )}
                 </ErrorBoundary>
               </div>
             </div>
